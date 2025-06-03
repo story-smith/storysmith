@@ -8,6 +8,11 @@ license = {text = "MIT"}
 authors = [{name = "Kotaro Nishigori", email = "kotaro.nishigori@gmail.com"}]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/story-smith/storysmith"
+Repository = "https://github.com/story-smith/storysmith"
+Issues = "https://github.com/story-smith/storysmith/issues"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
