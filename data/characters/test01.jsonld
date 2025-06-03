@@ -1,0 +1,20 @@
+[
+  {
+    "@id": "http://example.org/characters/sherlock_holmes",
+    "@type": "Character",
+    "label": "Sherlock Holmes",
+    "@context": "context.jsonld"
+  },
+  {
+    "@id": "http://example.org/characters/john_watson",
+    "@type": "Character",
+    "label": "John Watson",
+    "@context": "context.jsonld"
+  },
+  {
+    "@id": "http://example.org/characters/irene_adler",
+    "@type": "Character",
+    "label": "Irene Adler",
+    "@context": "context.jsonld"
+  }
+]

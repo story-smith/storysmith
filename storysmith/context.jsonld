@@ -1,0 +1,35 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://example.com/story#",
+    "schema": "https://schema.org/",
+    "c": {
+      "@id": "story:hasCharacter",
+      "@type": "@id"
+    },
+    "p": {
+      "@id": "story:hasPlace",
+      "@type": "@id"
+    },
+    "t": {
+      "@id": "story:atTime",
+      "@type": "@id"
+    },
+    "seq": {
+      "@id": "story:seq",
+      "@type": "schema:Text"
+    },
+    "Character": {
+      "@id": "story:Character"
+    },
+    "Place": {
+      "@id": "story:Place"
+    },
+    "TimePoint": {
+      "@id": "story:TimePoint"
+    },
+    "Scene": {
+      "@id": "story:Scene"
+    }
+  }
+}

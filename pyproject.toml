@@ -6,7 +6,14 @@ readme = "README.md"
 requires-python = ">=3.13"
 license = {text = "MIT"}
 authors = [{name = "Kotaro Nishigori", email = "kotaro.nishigori@gmail.com"}]
-dependencies = []
+dependencies = [
+    "fractional-indexing>=0.1.3",
+    "langchain>=0.3.25",
+    "langchain-community>=0.3.24",
+    "langchain-core>=0.3.63",
+    "openai>=1.84.0",
+    "python-dotenv>=1.1.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/story-smith/storysmith"
