@@ -1,7 +1,19 @@
 [project]
 name = "storysmith"
 version = "0.1.0"
-description = "Add your description here"
+description = "A storytelling toolkit"
 readme = "README.md"
 requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [{name = "Kotaro Nishigori", email = "kotaro.nishigori@gmail.com"}]
 dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "twine>=6.1.0",
+]
