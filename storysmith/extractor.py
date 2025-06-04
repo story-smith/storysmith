@@ -1,8 +1,9 @@
+import difflib
 import json
 import re
 import uuid
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from config import (
     CHARACTER_BASE_URI,
@@ -46,6 +47,30 @@ def slugify(name: str) -> str:
     name = re.sub(r"[^\w\s-]", "", name)
     name = re.sub(r"[\s]+", "_", name)
     return name
+
+
+def load_existing_entities_from_dir(directory: Path) -> List[dict]:
+    entities = []
+    for file in directory.glob("*.jsonld"):
+        try:
+            with open(file, "r", encoding="utf-8") as f:
+                entities.append(json.load(f))
+        except json.JSONDecodeError:
+            print(f"⚠️ Skipping invalid JSON: {file}")
+    return entities
+
+
+def find_matching_entity(
+    label: str, existing_entities: List[dict], threshold: float = 0.85
+) -> Optional[dict]:
+    label_lower = label.strip().lower()
+    for ent in existing_entities:
+        existing_label = ent.get("label", "").strip().lower()
+        if existing_label:
+            ratio = difflib.SequenceMatcher(None, label_lower, existing_label).ratio()
+            if ratio >= threshold:
+                return ent
+    return None
 
 
 def build_chain(context_url: str, target_type: str) -> ChatOpenAI:
@@ -97,17 +122,21 @@ def build_scene_chain(context_url: str, characters, places, timepoints):
 
 
 def extract_entities(
-    episodes_dir, context_url: str, target_type: str, base_uri: str, output_dir: Path
+    episodes: List[Path],
+    context_url: str,
+    target_type: str,
+    base_uri: str,
+    output_dir: Path,
+    existing_entities: Optional[List[dict]] = None,
 ) -> List[dict]:
-    episodes = sorted(Path(episodes_dir).glob("*.txt"))
     chain = build_chain(context_url, target_type)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    seen = {}
-    all_entities = []
+    seen = {e["@id"]: True for e in existing_entities} if existing_entities else {}
+    all_entities = existing_entities.copy() if existing_entities else []
 
     for ep in episodes:
-        epname = Path(ep.name).stem
+        epname = ep.stem
         print(f"🔍 Extracting {target_type}: {ep.name}")
         content = ep.read_text(encoding="utf-8").strip()
 
@@ -115,22 +144,34 @@ def extract_entities(
             extracted = chain.invoke({"input": content})
             for ent in extracted:
                 label = ent.get("label", "")
-                slug = slugify(label or uuid.uuid4().hex[:8])
-                ent["@id"] = f"{base_uri}{slug}"
-                ent["@type"] = target_type
-                ent["@context"] = context_url
-                ent["episode"] = epname
-
-                if ent["@id"] in seen:
+                if not label:
                     continue
-                seen[ent["@id"]] = True
 
-                # Save each entity to individual file
-                outpath = output_dir / f"{slug}.jsonld"
-                with open(outpath, "w", encoding="utf-8") as f:
-                    json.dump(ent, f, ensure_ascii=False, indent=2)
-                print(f"📄 Saved: {outpath.name}")
-                all_entities.append(ent)
+                matched = find_matching_entity(label, all_entities)
+                if matched:
+                    ent["@id"] = matched["@id"]
+                    ent["@type"] = matched["@type"]
+                    ent["@context"] = matched["@context"]
+                    ent["episode"] = epname
+                    print(
+                        f"🔁 Reusing existing entity for label '{label}': {ent['@id']}"
+                    )
+                else:
+                    slug = slugify(label or uuid.uuid4().hex[:8])
+                    ent["@id"] = f"{base_uri}{slug}"
+                    ent["@type"] = target_type
+                    ent["@context"] = context_url
+                    ent["episode"] = epname
+
+                    if ent["@id"] in seen:
+                        continue
+                    seen[ent["@id"]] = True
+
+                    outpath = output_dir / f"{slug}.jsonld"
+                    with open(outpath, "w", encoding="utf-8") as f:
+                        json.dump(ent, f, ensure_ascii=False, indent=2)
+                    print(f"📄 Saved: {outpath.name}")
+                    all_entities.append(ent)
         except Exception as e:
             print(f"❌ Error processing {ep.name}: {e}")
 
@@ -138,15 +179,13 @@ def extract_entities(
 
 
 def extract_scenes(
-    episodes_dir, chain, context_url: str, output_dir: Path, merged_path: Path
+    episodes: List[Path], chain, context_url: str, output_dir: Path, merged_path: Path
 ):
-    episodes = sorted(Path(episodes_dir).glob("*.txt"))
     output_dir.mkdir(parents=True, exist_ok=True)
-
     all_scenes = []
 
     for ep in episodes:
-        epname = Path(ep.name).stem
+        epname = ep.stem
         print(f"🎬 Extracting Scene: {ep.name}")
         content = ep.read_text(encoding="utf-8").strip()
 
@@ -173,26 +212,62 @@ def extract_scenes(
 
 
 if __name__ == "__main__":
-    characters = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "Character", CHARACTER_BASE_URI, Path(CHARACTER_DIR)
+    episodes = sorted(Path(EPISODE_DIR).glob("*.txt"))
+    episode1 = [ep for ep in episodes if ep.name == "episode1.txt"]
+    episode2 = [ep for ep in episodes if ep.name == "episode2.txt"]
+
+    characters1 = extract_entities(
+        episode1, CONTEXT_URL, "Character", CHARACTER_BASE_URI, Path(CHARACTER_DIR)
+    )
+    places1 = extract_entities(
+        episode1, CONTEXT_URL, "Place", PLACE_BASE_URI, Path(PLACE_DIR)
+    )
+    timepoints1 = extract_entities(
+        episode1, CONTEXT_URL, "TimePoint", TIMEPOINT_BASE_URI, Path(TIMEPOINT_DIR)
     )
 
-    places = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "Place", PLACE_BASE_URI, Path(PLACE_DIR)
+    characters_existing = load_existing_entities_from_dir(Path(CHARACTER_DIR))
+    places_existing = load_existing_entities_from_dir(Path(PLACE_DIR))
+    timepoints_existing = load_existing_entities_from_dir(Path(TIMEPOINT_DIR))
+
+    characters2 = extract_entities(
+        episode2,
+        CONTEXT_URL,
+        "Character",
+        CHARACTER_BASE_URI,
+        Path(CHARACTER_DIR),
+        existing_entities=characters_existing,
+    )
+    places2 = extract_entities(
+        episode2,
+        CONTEXT_URL,
+        "Place",
+        PLACE_BASE_URI,
+        Path(PLACE_DIR),
+        existing_entities=places_existing,
+    )
+    timepoints2 = extract_entities(
+        episode2,
+        CONTEXT_URL,
+        "TimePoint",
+        TIMEPOINT_BASE_URI,
+        Path(TIMEPOINT_DIR),
+        existing_entities=timepoints_existing,
     )
 
-    timepoints = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "TimePoint", TIMEPOINT_BASE_URI, Path(TIMEPOINT_DIR)
+    all_characters = characters_existing + characters2
+    all_places = places_existing + places2
+    all_timepoints = timepoints_existing + timepoints2
+
+    scene_chain = build_scene_chain(
+        CONTEXT_URL, all_characters, all_places, all_timepoints
     )
-
-    scene_chain = build_scene_chain(CONTEXT_URL, characters, places, timepoints)
-
     extract_scenes(
-        EPISODE_DIR,
+        episode1 + episode2,
         scene_chain,
         CONTEXT_URL,
         Path(SCENE_DIR),
         Path(SCENE_DIR) / "scene-all.jsonld",
     )
 
-    print("🎉 Done. Processed all episodes.")
+    print("🎉 Done. All episodes processed.")

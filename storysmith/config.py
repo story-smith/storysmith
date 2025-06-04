@@ -13,8 +13,6 @@ SCENE_BASE_URI = "https://story-smith.github.io/storysmith/scenes/"
 TIMEPOINT_BASE_URI = "https://story-smith.github.io/storysmith/timepoints/"
 
 EPISODE_DIR = "episodes"
-
-# 保存先をすべて data フォルダ内に統一
 DATA_DIR = "data"
 CHARACTER_DIR = os.path.join(DATA_DIR, "characters")
 PLACE_DIR = os.path.join(DATA_DIR, "places")
