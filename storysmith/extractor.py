@@ -1,5 +1,6 @@
 import json
 import re
+import uuid
 from pathlib import Path
 from typing import Dict, List
 
@@ -13,6 +14,8 @@ from config import (
     PLACE_BASE_URI,
     PLACES_INDIVIDUAL_DIR,
     PLACES_PER_EPISODE_DIR,
+    SCENE_BASE_URI,
+    SCENES_PER_EPISODE_DIR,
 )
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -23,7 +26,7 @@ from langchain.schema import BaseOutputParser
 from langchain_openai import ChatOpenAI
 
 
-class EntityOutputParser(BaseOutputParser):
+class OutputParser(BaseOutputParser):
     def parse(self, text: str) -> List[dict]:
         try:
             return json.loads(text)
@@ -46,12 +49,11 @@ def slugify(name: str) -> str:
 
 
 def build_chain(context_url: str, target_type: str) -> ChatOpenAI:
-    system_template = (
-        f"You are a JSON-LD generator. Output only {target_type} from this episode "
-        f"following context {context_url}. No natural language. "
-        "Use only keys: @id, @type. Optionally label. "
-        "Only output a JSON array of objects."
-    )
+    system_template = {
+        "Character": f"You are a JSON-LD generator. Extract only Characters from this episode, following context {context_url}. Output a JSON array. Only include @id, @type, and optional label.",
+        "Place": f"You are a JSON-LD generator. Extract only Places from this episode, following context {context_url}. Output a JSON array. Only include @id, @type, and optional label.",
+        "Scene": f"You are a JSON-LD generator. Extract Scene objects from this episode using context {context_url}. Each Scene must include: @id, @type, @context, c (hasCharacter), p (hasPlace), and seq (a unique string). Output a JSON array.",
+    }[target_type]
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -66,7 +68,7 @@ def build_chain(context_url: str, target_type: str) -> ChatOpenAI:
         api_key=OPENAI_API_KEY,
     )
 
-    return prompt | model | EntityOutputParser()
+    return prompt | model | OutputParser()
 
 
 def extract_entities(
@@ -86,20 +88,21 @@ def extract_entities(
             episode_entities = []
 
             for ent in extracted:
-                label = ent.get("label")
-                if label:
-                    slug = slugify(label)
-                    base = (
-                        CHARACTER_BASE_URI
-                        if target_type == "Character"
-                        else PLACE_BASE_URI
-                    )
-                    ent["@id"] = f"{base}{slug}"
-                if ent.get("@id") in seen:
-                    continue
-                seen.add(ent["@id"])
+                label = ent.get("label", "")
+                if target_type == "Character":
+                    slug = slugify(label or uuid.uuid4().hex[:8])
+                    ent["@id"] = f"{CHARACTER_BASE_URI}{slug}"
+                elif target_type == "Place":
+                    slug = slugify(label or uuid.uuid4().hex[:8])
+                    ent["@id"] = f"{PLACE_BASE_URI}{slug}"
+                elif target_type == "Scene":
+                    ent["@id"] = f"{SCENE_BASE_URI}{uuid.uuid4().hex[:8]}"
                 ent["@context"] = context_url
                 ent["@type"] = target_type
+
+                if ent["@id"] in seen:
+                    continue
+                seen.add(ent["@id"])
                 episode_entities.append(ent)
 
             all_entities[ep.name] = episode_entities
@@ -148,5 +151,8 @@ if __name__ == "__main__":
     place_map = extract_entities(EPISODE_DIR, CONTEXT_URL, "Place")
     save_entities_to_dir_per_episode(place_map, PLACES_PER_EPISODE_DIR)
     save_individual_entities(place_map, PLACES_INDIVIDUAL_DIR)
+
+    scene_map = extract_entities(EPISODE_DIR, CONTEXT_URL, "Scene")
+    save_entities_to_dir_per_episode(scene_map, SCENES_PER_EPISODE_DIR)
 
     print(f"🎉 Done. Processed {len(char_map)} episode(s).")

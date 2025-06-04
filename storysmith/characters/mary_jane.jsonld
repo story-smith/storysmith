@@ -1,0 +1,6 @@
+{
+  "@id": "https://story-smith.github.io/storysmith/characters/mary_jane",
+  "@type": "Character",
+  "label": "Mary Jane",
+  "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
+}

@@ -6,15 +6,21 @@
     "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
   },
   {
-    "@id": "https://story-smith.github.io/storysmith/characters/john_watson",
+    "@id": "https://story-smith.github.io/storysmith/characters/dr_john_watson",
     "@type": "Character",
-    "label": "John Watson",
+    "label": "Dr. John Watson",
     "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
   },
   {
     "@id": "https://story-smith.github.io/storysmith/characters/irene_adler",
     "@type": "Character",
     "label": "Irene Adler",
+    "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
+  },
+  {
+    "@id": "https://story-smith.github.io/storysmith/characters/mary_jane",
+    "@type": "Character",
+    "label": "Mary Jane",
     "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
   }
 ]
