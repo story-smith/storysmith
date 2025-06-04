@@ -1,7 +1,0 @@
-{
-  "@id": "https://story-smith.github.io/storysmith/places/baker_street",
-  "@type": "Place",
-  "label": "Baker Street",
-  "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld",
-  "episode": "test01"
-}
