@@ -1,39 +1,44 @@
 {
   "@context": {
-    "@version": 1.2,
+    "@version": 1.1,
     "@vocab": "https://story-smith.github.io/storysmith/ontology#",
-    "story": "https://story-smith.github.io/storysmith/ontology#",
     "schema": "https://schema.org/",
-    "c": {
-      "@id": "story:hasCharacter",
-      "@type": "@id",
-      "@container": "@set"
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "Character": "schema:Person",
+    "Place": "schema:Place",
+    "TimePoint": "schema:Event",
+    "Event": "story:Event",
+    "Scene": "story:Scene",
+    "subject": {
+      "@id": "rdf:subject",
+      "@type": "@id"
     },
-    "p": {
-      "@id": "story:hasPlace",
-      "@type": "@id",
-      "@container": "@set"
+    "predicate": {
+      "@id": "rdf:predicate",
+      "@type": "xsd:string"
     },
-    "t": {
-      "@id": "story:atTime",
-      "@type": "@id",
-      "@container": "@set"
+    "object": {
+      "@id": "rdf:object",
+      "@type": "@id"
     },
-    "seq": {
-      "@id": "story:seq",
-      "@type": "schema:Text"
+    "location": {
+      "@id": "schema:location",
+      "@type": "@id"
     },
-    "Character": {
-      "@id": "story:Character"
+    "time": {
+      "@id": "schema:startTime",
+      "@type": "@id"
     },
-    "Place": {
-      "@id": "story:Place"
+    "description": {
+      "@id": "schema:description",
+      "@type": "xsd:string"
     },
-    "TimePoint": {
-      "@id": "story:TimePoint"
+    "episode": {
+      "@id": "story:episode",
+      "@type": "xsd:string"
     },
-    "Scene": {
-      "@id": "story:Scene"
-    }
+    "label": "rdfs:label"
   }
 }

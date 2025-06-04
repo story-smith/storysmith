@@ -1,3 +1,5 @@
+# extract_entities_from_episodes.py
+
 import json
 import re
 import uuid
@@ -9,6 +11,8 @@ from config import (
     CHARACTER_DIR_RAW,
     CONTEXT_URL,
     EPISODE_DIR,
+    EVENT_BASE_URI,
+    EVENT_DIR_RAW,
     OPENAI_API_KEY,
     PLACE_BASE_URI,
     PLACE_DIR_RAW,
@@ -139,6 +143,9 @@ if __name__ == "__main__":
     )
     extract_entities_from_episodes(
         episodes, "TimePoint", TIMEPOINT_BASE_URI, Path(TIMEPOINT_DIR_RAW)
+    )
+    extract_entities_from_episodes(
+        episodes, "Event", EVENT_BASE_URI, Path(EVENT_DIR_RAW)
     )
 
     print("✅ Extraction complete.")
