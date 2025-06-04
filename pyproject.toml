@@ -12,6 +12,7 @@ dependencies = [
     "langchain-community>=0.3.24",
     "langchain-core>=0.3.63",
     "openai>=1.84.0",
+    "pydantic>=2.11.5",
     "python-dotenv>=1.1.0",
 ]
 
