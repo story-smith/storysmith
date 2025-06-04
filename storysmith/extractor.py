@@ -5,13 +5,13 @@ from pathlib import Path
 from typing import Dict, List
 
 from dotenv import load_dotenv
-from langchain.chat_models import ChatOpenAI
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
 from langchain.schema import BaseOutputParser
+from langchain_openai import ChatOpenAI
 
 # 環境変数読み込み
 load_dotenv()
