@@ -6,11 +6,15 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
-# === Configuration ===
-ENTITY_DIR = Path("data/raw/characters")  # Extracted entities
-OUTPUT_DIR = Path("data/characters")  # Output directory for merged entities
-SIMILARITY_THRESHOLD = 0.90  # Similarity threshold (can be adjusted)
+# === Configurable Parameters ===
+SIMILARITY_THRESHOLD = 0.90
 LOG_FILE = "deduplication.log"
+
+ENTITY_TYPES = {
+    "characters": ("data/raw/characters", "data/characters"),
+    "places": ("data/raw/places", "data/places"),
+    "timepoints": ("data/raw/timepoints", "data/timepoints"),
+}
 
 # === Set up logging ===
 logging.basicConfig(
@@ -20,16 +24,14 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
-# === Load model ===
+# === Load embedding model ===
 model = SentenceTransformer("intfloat/multilingual-e5-large")
 
 
-# === Function to get vector embedding ===
 def get_embedding(text: str):
     return model.encode(f"query: {text}", normalize_embeddings=True)
 
 
-# === Load entity data ===
 def load_entities(entity_dir: Path):
     entities = []
     for path in entity_dir.glob("*.jsonld"):
@@ -42,7 +44,6 @@ def load_entities(entity_dir: Path):
     return entities
 
 
-# === Merge entities based on semantic similarity ===
 def deduplicate_entities_by_e5(entities, threshold: float):
     labels = [label for _, label in entities]
     embeddings = model.encode(
@@ -52,30 +53,26 @@ def deduplicate_entities_by_e5(entities, threshold: float):
     clusters = []
     used = set()
 
-    for i in tqdm(range(len(entities)), desc="🔗 Merging semantically similar labels"):
+    for i in tqdm(range(len(entities)), desc="🔗 Merging similar entities"):
         if i in used:
             continue
         cluster = [entities[i][0]]
         used.add(i)
-
         for j in range(i + 1, len(entities)):
             if j in used:
                 continue
-            sim = float(np.dot(embeddings[i], embeddings[j]))  # cosine similarity
+            sim = float(np.dot(embeddings[i], embeddings[j]))
             if sim >= threshold:
                 cluster.append(entities[j][0])
                 used.add(j)
-
         clusters.append(cluster)
 
     logging.info(f"Generated {len(clusters)} clusters from {len(entities)} entities")
     return clusters
 
 
-# === Save representative entity for each cluster ===
 def save_clusters(clusters, output_dir: Path):
     output_dir.mkdir(parents=True, exist_ok=True)
-
     for cluster in clusters:
         rep = cluster[0]
         rep_id = rep["@id"]
@@ -86,15 +83,17 @@ def save_clusters(clusters, output_dir: Path):
         with open(outpath, "w", encoding="utf-8") as f:
             json.dump(rep, f, ensure_ascii=False, indent=2)
 
-        msg = f"Saved merged entity: {outpath.name} (duplicates merged: {len(cluster)})"
-        print(f"✅ {msg}")
+        msg = f"✅ Saved merged entity: {outpath.name} (merged: {len(cluster)})"
+        print(msg)
         logging.info(msg)
 
 
-# === Main execution ===
+# === Run for all types ===
 if __name__ == "__main__":
-    raw_entities = load_entities(ENTITY_DIR)
-    clusters = deduplicate_entities_by_e5(raw_entities, SIMILARITY_THRESHOLD)
-    save_clusters(clusters, OUTPUT_DIR)
-    print("🏁 Merging completed")
-    logging.info("Merging process completed")
+    for entity_type, (input_dir, output_dir) in ENTITY_TYPES.items():
+        print(f"\n📦 Processing {entity_type}")
+        raw_entities = load_entities(Path(input_dir))
+        clusters = deduplicate_entities_by_e5(raw_entities, SIMILARITY_THRESHOLD)
+        save_clusters(clusters, Path(output_dir))
+
+    print("\n🏁 All entity types deduplicated successfully.")
