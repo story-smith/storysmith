@@ -6,12 +6,16 @@ from typing import List
 
 from config import (
     CHARACTER_BASE_URI,
+    CHARACTER_DIR,
     CONTEXT_URL,
     EPISODE_DIR,
     OPENAI_API_KEY,
     PLACE_BASE_URI,
+    PLACE_DIR,
     SCENE_BASE_URI,
+    SCENE_DIR,
     TIMEPOINT_BASE_URI,
+    TIMEPOINT_DIR,
 )
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -169,24 +173,26 @@ def extract_scenes(
 
 
 if __name__ == "__main__":
-    base = Path("storysmith")
     characters = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "Character", CHARACTER_BASE_URI, base / "characters"
+        EPISODE_DIR, CONTEXT_URL, "Character", CHARACTER_BASE_URI, Path(CHARACTER_DIR)
     )
+
     places = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "Place", PLACE_BASE_URI, base / "places"
+        EPISODE_DIR, CONTEXT_URL, "Place", PLACE_BASE_URI, Path(PLACE_DIR)
     )
+
     timepoints = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "TimePoint", TIMEPOINT_BASE_URI, base / "timepoints"
+        EPISODE_DIR, CONTEXT_URL, "TimePoint", TIMEPOINT_BASE_URI, Path(TIMEPOINT_DIR)
     )
 
     scene_chain = build_scene_chain(CONTEXT_URL, characters, places, timepoints)
+
     extract_scenes(
         EPISODE_DIR,
         scene_chain,
         CONTEXT_URL,
-        base / "scenes",
-        base / "scenes" / "scene-all.jsonld",
+        Path(SCENE_DIR),
+        Path(SCENE_DIR) / "scene-all.jsonld",
     )
 
     print("🎉 Done. Processed all episodes.")
