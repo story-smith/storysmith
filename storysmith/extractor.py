@@ -2,23 +2,16 @@ import json
 import re
 import uuid
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 from config import (
     CHARACTER_BASE_URI,
-    CHARACTERS_INDIVIDUAL_DIR,
-    CHARACTERS_PER_EPISODE_DIR,
     CONTEXT_URL,
     EPISODE_DIR,
     OPENAI_API_KEY,
     PLACE_BASE_URI,
-    PLACES_INDIVIDUAL_DIR,
-    PLACES_PER_EPISODE_DIR,
     SCENE_BASE_URI,
-    SCENES_PER_EPISODE_DIR,
     TIMEPOINT_BASE_URI,
-    TIMEPOINTS_INDIVIDUAL_DIR,
-    TIMEPOINTS_PER_EPISODE_DIR,
 )
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -55,7 +48,7 @@ def build_chain(context_url: str, target_type: str) -> ChatOpenAI:
     system_template = f"""
     You are a JSON-LD generator. Extract only {target_type}s from this episode, following context {context_url}.
     Output a JSON array. Only include @id, @type, and optional label.
-    """
+    """.strip()
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -100,142 +93,100 @@ def build_scene_chain(context_url: str, characters, places, timepoints):
 
 
 def extract_entities(
-    episodes_dir, context_url: str, target_type: str, base_uri: str
-) -> Dict[str, List[dict]]:
+    episodes_dir, context_url: str, target_type: str, base_uri: str, output_dir: Path
+) -> List[dict]:
     episodes = sorted(Path(episodes_dir).glob("*.txt"))
     chain = build_chain(context_url, target_type)
-    all_entities = {}
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    seen = {}
+    all_entities = []
 
     for ep in episodes:
+        epname = Path(ep.name).stem
         print(f"🔍 Extracting {target_type}: {ep.name}")
         content = ep.read_text(encoding="utf-8").strip()
 
         try:
             extracted = chain.invoke({"input": content})
-            seen = set()
-            episode_entities = []
-
             for ent in extracted:
                 label = ent.get("label", "")
                 slug = slugify(label or uuid.uuid4().hex[:8])
                 ent["@id"] = f"{base_uri}{slug}"
                 ent["@type"] = target_type
                 ent["@context"] = context_url
+                ent["episode"] = epname
 
                 if ent["@id"] in seen:
                     continue
-                seen.add(ent["@id"])
-                episode_entities.append(ent)
+                seen[ent["@id"]] = True
 
-            all_entities[ep.name] = episode_entities
+                # Save each entity to individual file
+                outpath = output_dir / f"{slug}.jsonld"
+                with open(outpath, "w", encoding="utf-8") as f:
+                    json.dump(ent, f, ensure_ascii=False, indent=2)
+                print(f"📄 Saved: {outpath.name}")
+                all_entities.append(ent)
         except Exception as e:
             print(f"❌ Error processing {ep.name}: {e}")
 
     return all_entities
 
 
-def extract_scenes_with_chain(
-    episodes_dir, chain, context_url: str
-) -> Dict[str, List[dict]]:
+def extract_scenes(
+    episodes_dir, chain, context_url: str, output_dir: Path, merged_path: Path
+):
     episodes = sorted(Path(episodes_dir).glob("*.txt"))
-    all_entities = {}
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    all_scenes = []
 
     for ep in episodes:
+        epname = Path(ep.name).stem
         print(f"🎬 Extracting Scene: {ep.name}")
         content = ep.read_text(encoding="utf-8").strip()
 
         try:
             extracted = chain.invoke({"input": content})
-            seen = set()
-            episode_entities = []
-
             for ent in extracted:
                 ent["@id"] = f"{SCENE_BASE_URI}{uuid.uuid4().hex[:8]}"
                 ent["@type"] = "Scene"
                 ent["@context"] = context_url
-                if ent["@id"] in seen:
-                    continue
-                seen.add(ent["@id"])
-                episode_entities.append(ent)
+                ent["episode"] = epname
 
-            all_entities[ep.name] = episode_entities
+            ep_path = output_dir / f"{epname}.jsonld"
+            with open(ep_path, "w", encoding="utf-8") as f:
+                json.dump(extracted, f, ensure_ascii=False, indent=2)
+            print(f"✅ Scene saved: {ep_path.name}")
+
+            all_scenes.extend(extracted)
         except Exception as e:
             print(f"❌ Error processing {ep.name}: {e}")
 
-    return all_entities
-
-
-def save_entities_to_dir_per_episode(entity_map, output_dir):
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    for fname, entities in entity_map.items():
-        outpath = output_dir / f"{Path(fname).stem}.jsonld"
-        with open(outpath, "w", encoding="utf-8") as f:
-            json.dump(entities, f, ensure_ascii=False, indent=2)
-        print(f"✅ Saved: {outpath.name} ({len(entities)} items)")
-
-
-def save_individual_entities(entity_map, output_dir):
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    seen = set()
-
-    for entities in entity_map.values():
-        for ent in entities:
-            cid = ent.get("@id")
-            if not cid or cid in seen:
-                continue
-            seen.add(cid)
-            slug = Path(cid).name
-            outpath = output_dir / f"{slug}.jsonld"
-            with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(ent, f, ensure_ascii=False, indent=2)
-            print(f"📄 Saved individual: {outpath.name}")
-
-
-def merge_scene_entities_to_single_file(scene_map, output_path):
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    all_scenes = [scene for scenes in scene_map.values() for scene in scenes]
-
-    with open(output_path, "w", encoding="utf-8") as f:
+    with open(merged_path, "w", encoding="utf-8") as f:
         json.dump(all_scenes, f, ensure_ascii=False, indent=2)
-
-    print(f"📦 Merged all scenes into: {output_path} ({len(all_scenes)} scenes)")
+    print(f"📦 Merged all scenes: {merged_path}")
 
 
 if __name__ == "__main__":
-    # Extract characters
-    char_map = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "Character", CHARACTER_BASE_URI
+    base = Path("storysmith")
+    characters = extract_entities(
+        EPISODE_DIR, CONTEXT_URL, "Character", CHARACTER_BASE_URI, base / "characters"
     )
-    save_entities_to_dir_per_episode(char_map, CHARACTERS_PER_EPISODE_DIR)
-    save_individual_entities(char_map, CHARACTERS_INDIVIDUAL_DIR)
-
-    # Extract places
-    place_map = extract_entities(EPISODE_DIR, CONTEXT_URL, "Place", PLACE_BASE_URI)
-    save_entities_to_dir_per_episode(place_map, PLACES_PER_EPISODE_DIR)
-    save_individual_entities(place_map, PLACES_INDIVIDUAL_DIR)
-
-    # Extract timepoints
-    time_map = extract_entities(
-        EPISODE_DIR, CONTEXT_URL, "TimePoint", TIMEPOINT_BASE_URI
+    places = extract_entities(
+        EPISODE_DIR, CONTEXT_URL, "Place", PLACE_BASE_URI, base / "places"
     )
-    save_entities_to_dir_per_episode(time_map, TIMEPOINTS_PER_EPISODE_DIR)
-    save_individual_entities(time_map, TIMEPOINTS_INDIVIDUAL_DIR)
-
-    # Flatten
-    all_characters = [c for clist in char_map.values() for c in clist]
-    all_places = [p for plist in place_map.values() for p in plist]
-    all_timepoints = [t for tlist in time_map.values() for t in tlist]
-
-    # Extract scenes
-    scene_chain = build_scene_chain(
-        CONTEXT_URL, all_characters, all_places, all_timepoints
+    timepoints = extract_entities(
+        EPISODE_DIR, CONTEXT_URL, "TimePoint", TIMEPOINT_BASE_URI, base / "timepoints"
     )
-    scene_map = extract_scenes_with_chain(EPISODE_DIR, scene_chain, CONTEXT_URL)
-    save_entities_to_dir_per_episode(scene_map, SCENES_PER_EPISODE_DIR)
-    merge_scene_entities_to_single_file(scene_map, Path("data/scene-all.jsonld"))
 
-    print(f"🎉 Done. Processed {len(char_map)} episode(s).")
+    scene_chain = build_scene_chain(CONTEXT_URL, characters, places, timepoints)
+    extract_scenes(
+        EPISODE_DIR,
+        scene_chain,
+        CONTEXT_URL,
+        base / "scenes",
+        base / "scenes" / "scene-all.jsonld",
+    )
+
+    print("🎉 Done. Processed all episodes.")
