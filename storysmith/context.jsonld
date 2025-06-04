@@ -1,19 +1,23 @@
 {
   "@context": {
-    "@version": 1.1,
-    "@vocab": "https://example.com/story#",
+    "@version": 1.2,
+    "@vocab": "https://story-smith.github.io/storysmith/ontology#",
+    "story": "https://story-smith.github.io/storysmith/ontology#",
     "schema": "https://schema.org/",
     "c": {
       "@id": "story:hasCharacter",
-      "@type": "@id"
+      "@type": "@id",
+      "@container": "@set"
     },
     "p": {
       "@id": "story:hasPlace",
-      "@type": "@id"
+      "@type": "@id",
+      "@container": "@set"
     },
     "t": {
       "@id": "story:atTime",
-      "@type": "@id"
+      "@type": "@id",
+      "@container": "@set"
     },
     "seq": {
       "@id": "story:seq",
