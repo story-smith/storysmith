@@ -1,10 +1,16 @@
 import json
-import os
 import re
 from pathlib import Path
 from typing import Dict, List
 
-from dotenv import load_dotenv
+from config import (
+    CHARACTER_BASE_URI,
+    CHARACTERS_INDIVIDUAL_DIR,
+    CHARACTERS_PER_EPISODE_DIR,
+    CONTEXT_URL,
+    EPISODE_DIR,
+    OPENAI_API_KEY,
+)
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
@@ -12,14 +18,6 @@ from langchain.prompts import (
 )
 from langchain.schema import BaseOutputParser
 from langchain_openai import ChatOpenAI
-
-# 環境変数読み込み
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-# 定数
-CONTEXT_URL = "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
-CHARACTER_BASE_URI = "https://story-smith.github.io/storysmith/characters/"
 
 
 class CharacterOutputParser(BaseOutputParser):
@@ -141,12 +139,7 @@ def save_individual_characters(char_map: Dict[str, List[dict]], output_dir: str 
 
 
 if __name__ == "__main__":
-    ep_dir = "episodes"
-    per_episode_out = "data/characters"
-    individual_out = "storysmith/characters"
-
-    char_map = extract_characters(ep_dir, CONTEXT_URL)
-    save_characters_to_dir_per_episode(char_map, per_episode_out)
-    save_individual_characters(char_map, individual_out)
-
+    char_map = extract_characters(EPISODE_DIR, CONTEXT_URL)
+    save_characters_to_dir_per_episode(char_map, CHARACTERS_PER_EPISODE_DIR)
+    save_individual_characters(char_map, CHARACTERS_INDIVIDUAL_DIR)
     print(f"🎉 Done. Processed {len(char_map)} episode(s).")
