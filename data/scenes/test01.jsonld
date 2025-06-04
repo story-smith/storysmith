@@ -1,39 +1,51 @@
 [
   {
-    "@id": "https://story-smith.github.io/storysmith/scenes/774492fd",
+    "@id": "https://story-smith.github.io/storysmith/scenes/b0dee959",
     "@type": "Scene",
     "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld",
     "c": [
-      "Sherlock Holmes",
-      "Irene Adler"
+      "https://story-smith.github.io/storysmith/characters/sherlock_holmes",
+      "https://story-smith.github.io/storysmith/characters/john_watson"
     ],
-    "p": [],
+    "p": [
+      "https://story-smith.github.io/storysmith/places/baker_street"
+    ],
     "seq": "1"
   },
   {
-    "@id": "https://story-smith.github.io/storysmith/scenes/05bb91de",
+    "@id": "https://story-smith.github.io/storysmith/scenes/952ce0cd",
     "@type": "Scene",
     "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld",
     "c": [
-      "John Watson",
-      "Sherlock Holmes"
+      "https://story-smith.github.io/storysmith/characters/sherlock_holmes"
     ],
     "p": [
-      "Baker Street"
+      "https://story-smith.github.io/storysmith/places/odessa"
     ],
     "seq": "2"
   },
   {
-    "@id": "https://story-smith.github.io/storysmith/scenes/62dfe545",
+    "@id": "https://story-smith.github.io/storysmith/scenes/d019ef2c",
     "@type": "Scene",
     "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld",
     "c": [
-      "John Watson",
-      "Sherlock Holmes"
+      "https://story-smith.github.io/storysmith/characters/sherlock_holmes"
     ],
     "p": [
-      "Holmes' rooms"
+      "https://story-smith.github.io/storysmith/places/trincomalee"
     ],
     "seq": "3"
+  },
+  {
+    "@id": "https://story-smith.github.io/storysmith/scenes/fef1cf8d",
+    "@type": "Scene",
+    "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld",
+    "c": [
+      "https://story-smith.github.io/storysmith/characters/sherlock_holmes"
+    ],
+    "p": [
+      "https://story-smith.github.io/storysmith/places/holland"
+    ],
+    "seq": "4"
   }
 ]
