@@ -56,16 +56,19 @@ def build_chain(context_url: str, target_type: str):
         ]
     )
 
-    model = ChatOpenAI(model="gpt-4o", temperature=0.2, api_key=OPENAI_API_KEY)
+    model = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=OPENAI_API_KEY)
     return prompt | model | OutputParser()
 
 
 def summarize_features(label: str, raw_text: str, target_type: str) -> str:
     system_prompt = f"""
     You are an assistant summarizing distinguishing features of a {target_type} entity.
-    Summarize as simply and distinctly as possible, in 1 or 2 concise sentences.
-    Include specific traits or actions that can help differentiate it from others in the story.
-    The summary should be optimized for use in embedding-based similarity matching (e.g. BERT).
+    Your output should be:
+    - Extremely concise (max 1 sentence, ~20 words)
+    - Optimized for use in similarity comparison using embeddings
+    - Focused on traits or actions that make the {target_type} unique
+
+    Avoid generic descriptions. Be precise.
     """.strip()
 
     prompt = ChatPromptTemplate.from_messages(
