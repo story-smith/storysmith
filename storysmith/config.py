@@ -15,6 +15,7 @@ PLACE_BASE_URI = "https://story-smith.github.io/storysmith/places/"
 SCENE_BASE_URI = "https://story-smith.github.io/storysmith/scenes/"
 TIMEPOINT_BASE_URI = "https://story-smith.github.io/storysmith/timepoints/"
 EVENT_BASE_URI = "https://story-smith.github.io/storysmith/events/"
+PREDICATE_BASE_URI = "https://story-smith.github.io/storysmith/predicates/"
 
 EPISODE_DIR = "episodes"
 DATA_DIR = "data"
@@ -25,6 +26,7 @@ PLACE_DIR = os.path.join(DATA_DIR, "places")
 TIMEPOINT_DIR = os.path.join(DATA_DIR, "timepoints")
 SCENE_DIR = os.path.join(DATA_DIR, "scenes")
 EVENT_DIR = os.path.join(DATA_DIR, "events")
+TRIPLE_DIR = os.path.join(DATA_DIR, "triples")
 
 # Raw extracted entity directories (before integration)
 CHARACTER_DIR_RAW = os.path.join(DATA_DIR, "raw", "characters")

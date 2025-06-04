@@ -1,82 +1,133 @@
 import json
 import re
 from pathlib import Path
-from typing import List
+from typing import Dict, Optional
 
-from config import (
-    CHARACTER_DIR,
-    CONTEXT_URL,
-    EPISODE_DIR,
-    PLACE_DIR,
-    TIMEPOINT_DIR,
+from config import CONTEXT_URL, OPENAI_API_KEY
+from langchain.prompts import (
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
 )
+from langchain_openai import ChatOpenAI
 
-SCENE_DIR = Path("data/scenes")
-SCENE_DIR.mkdir(parents=True, exist_ok=True)
+# === CONFIG ===
+INTEGRATED_DIRS = {
+    "Character": Path("data/integrated/characters"),
+    "Place": Path("data/integrated/places"),
+    "TimePoint": Path("data/integrated/timepoints"),
+}
+EVENT_DIR = Path("data/raw/events")
+KG_OUTPUT_DIR = Path("data/kg/events")
+EVENT_BASE_URI = "https://story-smith.github.io/storysmith/events/"
 
-
-def load_entities(directory: Path) -> dict:
-    uri_to_label = {}
-    for file in directory.glob("*.jsonld"):
-        with open(file, "r", encoding="utf-8") as f:
-            ent = json.load(f)
-            uri = ent.get("@id")
-            label = ent.get("_features", {}).get("label") or ent.get("label", "")
-            if uri and label:
-                uri_to_label[label.lower()] = uri
-    return uri_to_label
-
-
-def detect_mentions(text: str, label_to_uri: dict) -> List[str]:
-    found_uris = set()
-    for label, uri in label_to_uri.items():
-        if re.search(rf"\b{re.escape(label)}\b", text, flags=re.IGNORECASE):
-            found_uris.add(uri)
-    return sorted(found_uris)
+# === SETUP ===
+model = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=OPENAI_API_KEY)
 
 
-def create_scene_id(epname: str, index: int) -> str:
-    return f"https://story-smith.github.io/storysmith/scenes/scene_{epname}_{index:03}"
+# === 1. Build label → URI map ===
+def build_label_uri_map() -> Dict[str, str]:
+    label_uri = {}
+    for path in INTEGRATED_DIRS.values():
+        for file in path.glob("*.jsonld"):
+            with open(file, encoding="utf-8") as f:
+                data = json.load(f)
+                label = data.get("_features", {}).get("label", "").lower().strip()
+                if label:
+                    label_uri[label] = data["@id"]
+    return label_uri
 
 
-def build_scenes():
-    char_ents = load_entities(Path(CHARACTER_DIR))
-    place_ents = load_entities(Path(PLACE_DIR))
-    time_ents = load_entities(Path(TIMEPOINT_DIR))
+# === 2. Extract triple elements from summary (GPT) ===
+def extract_triple_elements(summary: str) -> Optional[Dict[str, str]]:
+    system_prompt = """
+You are an assistant that extracts knowledge triples from short event summaries.
 
-    episodes = sorted(Path(EPISODE_DIR).glob("*.txt"))
+Extract:
+- actor (the subject/agent who did something)
+- target (optional: who or what it was done to)
+- location (optional: where it happened)
+- time (optional: when it happened)
 
-    for ep in episodes:
-        epname = ep.stem
-        text = ep.read_text(encoding="utf-8", errors="replace")
+Return JSON like:
+{{
+  "actor": "Akira",
+  "target": "Kaiju",
+  "location": "Tokyo Tower",
+  "time": "August 6, 1945"
+}}
+""".strip()
 
-        # シンプルに N 分割して Scene を仮生成（改行や長さで分割も応用可）
-        chunks = [text[i : i + 800] for i in range(0, len(text), 800)]
-        for idx, chunk in enumerate(chunks):
-            chars = detect_mentions(chunk, char_ents)
-            places = detect_mentions(chunk, place_ents)
-            times = detect_mentions(chunk, time_ents)
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            SystemMessagePromptTemplate.from_template(system_prompt),
+            HumanMessagePromptTemplate.from_template("{input}"),
+        ]
+    )
 
-            if not (chars or places or times):
-                continue  # 空のSceneはスキップ
-
-            scene = {
-                "@context": CONTEXT_URL,
-                "@id": create_scene_id(epname, idx),
-                "@type": "Scene",
-                "c": chars,
-                "p": places,
-                "t": times,
-                "seq": chunk.strip()[:300],
-                "episode": epname,
-            }
-
-            outpath = SCENE_DIR / f"scene_{epname}_{idx:03}.jsonld"
-            with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(scene, f, ensure_ascii=False, indent=2)
-            print(f"🎬 Scene saved: {outpath.name}")
+    chain = prompt | model
+    try:
+        response = chain.invoke({"input": summary}).content
+        return json.loads(response)
+    except json.JSONDecodeError:
+        match = re.search(r"{.*}", response, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+    print("⚠️ Failed to parse GPT output:", response)
+    return None
 
 
+# === 3. Build and save event triples ===
+def create_event_triples(label_uri_map: Dict[str, str]):
+    KG_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    for file in sorted(EVENT_DIR.glob("*.jsonld")):
+        with open(file, encoding="utf-8") as f:
+            data = json.load(f)
+
+        label = data.get("label", "")
+        summary = data.get("_features", {}).get("summary", "")
+        eid = data.get("@id")
+
+        # ない場合は自動生成
+        if not eid:
+            slug = re.sub(r"[^\w]+", "_", label.strip().lower())
+            eid = f"{EVENT_BASE_URI}{slug}"
+
+        print(f"🧠 Processing event: {label}")
+
+        elements = extract_triple_elements(summary)
+        if not elements:
+            print("❌ Skipping due to parse failure.")
+            continue
+
+        def map_uri(key: str) -> Optional[str]:
+            value = elements.get(key)
+            if value:
+                return label_uri_map.get(value.lower().strip())
+            return None
+
+        triple = {
+            "@id": eid,
+            "@type": "Event",
+            "@context": CONTEXT_URL,
+            "hasActor": map_uri("actor"),
+            "hasTarget": map_uri("target") or None,
+            "hasLocation": map_uri("location"),
+            "hasTime": map_uri("time"),
+        }
+
+        outpath = KG_OUTPUT_DIR / file.name
+        with open(outpath, "w", encoding="utf-8") as f:
+            json.dump(triple, f, ensure_ascii=False, indent=2)
+        print(f"✅ Saved triple: {outpath.name}")
+
+
+# === MAIN ===
 if __name__ == "__main__":
-    build_scenes()
-    print("✅ Scene construction complete.")
+    label_uri_map = build_label_uri_map()
+    create_event_triples(label_uri_map)
+    print("🏁 All event triples generated.")
