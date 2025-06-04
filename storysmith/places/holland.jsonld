@@ -1,0 +1,6 @@
+{
+  "@id": "https://story-smith.github.io/storysmith/places/holland",
+  "@type": "Place",
+  "label": "Holland",
+  "@context": "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
+}
