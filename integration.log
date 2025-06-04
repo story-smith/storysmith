@@ -1,0 +1,26 @@
+2025-06-05 01:58:57,888 - INFO - Use pytorch device_name: mps
+2025-06-05 01:58:57,888 - INFO - Load pretrained SentenceTransformer: intfloat/multilingual-e5-large
+2025-06-05 01:59:03,782 - INFO - Loaded 7 entities from data/raw/characters
+2025-06-05 01:59:05,279 - INFO - Formed 3 clusters from 7 entities
+2025-06-05 01:59:05,279 - INFO - ✅ Saved integrated entity: the_wind.jsonld (merged: 3)
+2025-06-05 01:59:05,279 - INFO - ✅ Saved integrated entity: young_man.jsonld (merged: 2)
+2025-06-05 01:59:05,279 - INFO - ✅ Saved integrated entity: sun.jsonld (merged: 2)
+2025-06-05 01:59:05,281 - INFO - Loaded 7 entities from data/raw/places
+2025-06-05 01:59:05,505 - INFO - Formed 6 clusters from 7 entities
+2025-06-05 01:59:05,505 - INFO - ✅ Saved integrated entity: windy_road.jsonld (merged: 2)
+2025-06-05 01:59:05,505 - INFO - ✅ Saved integrated entity: large_rock.jsonld (merged: 1)
+2025-06-05 01:59:05,506 - INFO - ✅ Saved integrated entity: sky.jsonld (merged: 1)
+2025-06-05 01:59:05,506 - INFO - ✅ Saved integrated entity: lakes.jsonld (merged: 1)
+2025-06-05 01:59:05,506 - INFO - ✅ Saved integrated entity: earth.jsonld (merged: 1)
+2025-06-05 01:59:05,506 - INFO - ✅ Saved integrated entity: mountains.jsonld (merged: 1)
+2025-06-05 01:59:05,508 - INFO - Loaded 8 entities from data/raw/timepoints
+2025-06-05 01:59:06,782 - INFO - Formed 2 clusters from 8 entities
+2025-06-05 01:59:06,782 - INFO - ✅ Saved integrated entity: the_moment_the_sun_emerged_from_the_cloud.jsonld (merged: 6)
+2025-06-05 01:59:06,782 - INFO - ✅ Saved integrated entity: a_fine_but_very_cold_winter_s_day.jsonld (merged: 2)
+2025-06-05 01:59:06,785 - INFO - Loaded 10 entities from data/raw/events
+2025-06-05 01:59:07,098 - INFO - Formed 5 clusters from 10 entities
+2025-06-05 01:59:07,099 - INFO - ✅ Saved integrated entity: the_wind_blows_past_the_sun_with_a_freezing_cold_blast_.jsonld (merged: 2)
+2025-06-05 01:59:07,099 - INFO - ✅ Saved integrated entity: the_snow_melts_and_the_landscape_begins_to_thaw_.jsonld (merged: 3)
+2025-06-05 01:59:07,100 - INFO - ✅ Saved integrated entity: the_wind_attempts_to_blow_a_man_s_coat_off_.jsonld (merged: 2)
+2025-06-05 01:59:07,100 - INFO - ✅ Saved integrated entity: the_sun_decides_to_take_its_time_crossing_the_sky_.jsonld (merged: 2)
+2025-06-05 01:59:07,100 - INFO - ✅ Saved integrated entity: the_sailors_cheer_as_the_sun_shines_on_their_broken_ships_.jsonld (merged: 1)
