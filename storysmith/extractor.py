@@ -16,6 +16,9 @@ from config import (
     PLACES_PER_EPISODE_DIR,
     SCENE_BASE_URI,
     SCENES_PER_EPISODE_DIR,
+    TIMEPOINT_BASE_URI,
+    TIMEPOINTS_INDIVIDUAL_DIR,
+    TIMEPOINTS_PER_EPISODE_DIR,
 )
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -49,10 +52,10 @@ def slugify(name: str) -> str:
 
 
 def build_chain(context_url: str, target_type: str) -> ChatOpenAI:
-    system_template = {
-        "Character": f"You are a JSON-LD generator. Extract only Characters from this episode, following context {context_url}. Output a JSON array. Only include @id, @type, and optional label.",
-        "Place": f"You are a JSON-LD generator. Extract only Places from this episode, following context {context_url}. Output a JSON array. Only include @id, @type, and optional label.",
-    }[target_type]
+    system_template = f"""
+    You are a JSON-LD generator. Extract only {target_type}s from this episode, following context {context_url}.
+    Output a JSON array. Only include @id, @type, and optional label.
+    """
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -61,32 +64,29 @@ def build_chain(context_url: str, target_type: str) -> ChatOpenAI:
         ]
     )
 
-    model = ChatOpenAI(
-        model="gpt-4o",
-        temperature=0.2,
-        api_key=OPENAI_API_KEY,
-    )
-
+    model = ChatOpenAI(model="gpt-4o", temperature=0.2, api_key=OPENAI_API_KEY)
     return prompt | model | OutputParser()
 
 
-def build_scene_chain(context_url: str, characters: List[dict], places: List[dict]):
+def build_scene_chain(context_url: str, characters, places, timepoints):
     character_ids = [c["@id"] for c in characters]
     place_ids = [p["@id"] for p in places]
+    timepoint_ids = [t["@id"] for t in timepoints]
 
     system_template = f"""
-You are a JSON-LD generator. Extract Scene objects from this episode using context {context_url}.
-Each Scene must include:
-- "@id": random unique identifier (you can leave blank)
-- "@type": must be "Scene"
-- "@context": must be "{context_url}"
-- "c": characters involved in the scene (only use from the following list): {character_ids}
-- "p": places involved (only use from the following list): {place_ids}
-- "seq": unique string for ordering
+    You are a JSON-LD generator. Extract Scene objects from this episode using context {context_url}.
+    Each Scene must include:
+    - "@id": random unique identifier (you can leave blank)
+    - "@type": must be "Scene"
+    - "@context": must be "{context_url}"
+    - "c": characters involved (only use from: {character_ids})
+    - "p": places involved (only use from: {place_ids})
+    - "t": timepoint (only use from: {timepoint_ids})
+    - "seq": unique string for ordering
 
-Only use the provided @id values for c and p. Do not create new ones.
-Output must be a JSON array of Scenes.
-""".strip()
+    Do not invent or create new values.
+    Output must be a JSON array of Scenes.
+    """.strip()
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -95,17 +95,12 @@ Output must be a JSON array of Scenes.
         ]
     )
 
-    model = ChatOpenAI(
-        model="gpt-4o",
-        temperature=0.2,
-        api_key=OPENAI_API_KEY,
-    )
-
+    model = ChatOpenAI(model="gpt-4o", temperature=0.2, api_key=OPENAI_API_KEY)
     return prompt | model | OutputParser()
 
 
 def extract_entities(
-    episodes_dir: str | Path, context_url: str, target_type: str
+    episodes_dir, context_url: str, target_type: str, base_uri: str
 ) -> Dict[str, List[dict]]:
     episodes = sorted(Path(episodes_dir).glob("*.txt"))
     chain = build_chain(context_url, target_type)
@@ -122,12 +117,8 @@ def extract_entities(
 
             for ent in extracted:
                 label = ent.get("label", "")
-                if target_type == "Character":
-                    slug = slugify(label or uuid.uuid4().hex[:8])
-                    ent["@id"] = f"{CHARACTER_BASE_URI}{slug}"
-                elif target_type == "Place":
-                    slug = slugify(label or uuid.uuid4().hex[:8])
-                    ent["@id"] = f"{PLACE_BASE_URI}{slug}"
+                slug = slugify(label or uuid.uuid4().hex[:8])
+                ent["@id"] = f"{base_uri}{slug}"
                 ent["@type"] = target_type
                 ent["@context"] = context_url
 
@@ -144,7 +135,7 @@ def extract_entities(
 
 
 def extract_scenes_with_chain(
-    episodes_dir: str | Path, chain, context_url: str
+    episodes_dir, chain, context_url: str
 ) -> Dict[str, List[dict]]:
     episodes = sorted(Path(episodes_dir).glob("*.txt"))
     all_entities = {}
@@ -174,9 +165,7 @@ def extract_scenes_with_chain(
     return all_entities
 
 
-def save_entities_to_dir_per_episode(
-    entity_map: Dict[str, List[dict]], output_dir: str | Path
-):
+def save_entities_to_dir_per_episode(entity_map, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -187,11 +176,11 @@ def save_entities_to_dir_per_episode(
         print(f"✅ Saved: {outpath.name} ({len(entities)} items)")
 
 
-def save_individual_entities(entity_map: Dict[str, List[dict]], output_dir: str | Path):
+def save_individual_entities(entity_map, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-
     seen = set()
+
     for entities in entity_map.values():
         for ent in entities:
             cid = ent.get("@id")
@@ -205,23 +194,48 @@ def save_individual_entities(entity_map: Dict[str, List[dict]], output_dir: str 
             print(f"📄 Saved individual: {outpath.name}")
 
 
+def merge_scene_entities_to_single_file(scene_map, output_path):
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    all_scenes = [scene for scenes in scene_map.values() for scene in scenes]
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(all_scenes, f, ensure_ascii=False, indent=2)
+
+    print(f"📦 Merged all scenes into: {output_path} ({len(all_scenes)} scenes)")
+
+
 if __name__ == "__main__":
     # Extract characters
-    char_map = extract_entities(EPISODE_DIR, CONTEXT_URL, "Character")
+    char_map = extract_entities(
+        EPISODE_DIR, CONTEXT_URL, "Character", CHARACTER_BASE_URI
+    )
     save_entities_to_dir_per_episode(char_map, CHARACTERS_PER_EPISODE_DIR)
     save_individual_entities(char_map, CHARACTERS_INDIVIDUAL_DIR)
 
     # Extract places
-    place_map = extract_entities(EPISODE_DIR, CONTEXT_URL, "Place")
+    place_map = extract_entities(EPISODE_DIR, CONTEXT_URL, "Place", PLACE_BASE_URI)
     save_entities_to_dir_per_episode(place_map, PLACES_PER_EPISODE_DIR)
     save_individual_entities(place_map, PLACES_INDIVIDUAL_DIR)
 
-    # Flatten for scene chain
+    # Extract timepoints
+    time_map = extract_entities(
+        EPISODE_DIR, CONTEXT_URL, "TimePoint", TIMEPOINT_BASE_URI
+    )
+    save_entities_to_dir_per_episode(time_map, TIMEPOINTS_PER_EPISODE_DIR)
+    save_individual_entities(time_map, TIMEPOINTS_INDIVIDUAL_DIR)
+
+    # Flatten
     all_characters = [c for clist in char_map.values() for c in clist]
     all_places = [p for plist in place_map.values() for p in plist]
+    all_timepoints = [t for tlist in time_map.values() for t in tlist]
 
-    scene_chain = build_scene_chain(CONTEXT_URL, all_characters, all_places)
+    # Extract scenes
+    scene_chain = build_scene_chain(
+        CONTEXT_URL, all_characters, all_places, all_timepoints
+    )
     scene_map = extract_scenes_with_chain(EPISODE_DIR, scene_chain, CONTEXT_URL)
     save_entities_to_dir_per_episode(scene_map, SCENES_PER_EPISODE_DIR)
+    merge_scene_entities_to_single_file(scene_map, Path("data/scene-all.jsonld"))
 
     print(f"🎉 Done. Processed {len(char_map)} episode(s).")
