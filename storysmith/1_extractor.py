@@ -1,24 +1,12 @@
-# extract_entities_from_episodes.py
-
+import argparse
 import json
+import os
 import re
 import uuid
 from pathlib import Path
 from typing import List
 
-from config import (
-    CHARACTER_BASE_URI,
-    CHARACTER_DIR_RAW,
-    CONTEXT_URL,
-    EPISODE_DIR,
-    EVENT_BASE_URI,
-    EVENT_DIR_RAW,
-    OPENAI_API_KEY,
-    PLACE_BASE_URI,
-    PLACE_DIR_RAW,
-    TIMEPOINT_BASE_URI,
-    TIMEPOINT_DIR_RAW,
-)
+from dotenv import load_dotenv
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
@@ -27,7 +15,20 @@ from langchain.prompts import (
 from langchain.schema import BaseOutputParser
 from langchain_openai import ChatOpenAI
 
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# Base URIs
+CONTEXT_URL = "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
+CHARACTER_BASE_URI = "https://story-smith.github.io/storysmith/characters/"
+PLACE_BASE_URI = "https://story-smith.github.io/storysmith/places/"
+SCENE_BASE_URI = "https://story-smith.github.io/storysmith/scenes/"
+TIMEPOINT_BASE_URI = "https://story-smith.github.io/storysmith/timepoints/"
+EVENT_BASE_URI = "https://story-smith.github.io/storysmith/events/"
+
+
+# -------- Output Parser --------
 class OutputParser(BaseOutputParser):
     def parse(self, text: str) -> List[dict]:
         try:
@@ -43,6 +44,7 @@ class OutputParser(BaseOutputParser):
         return []
 
 
+# -------- Chain Builders --------
 def build_chain(context_url: str, target_type: str):
     system_template = f"""
     You are a JSON-LD generator. Extract only {target_type}s from this episode, following context {context_url}.
@@ -89,6 +91,7 @@ def summarize_features(label: str, raw_text: str, target_type: str) -> str:
     )
 
 
+# -------- Entity Extraction --------
 def extract_entities_from_episodes(
     episodes: List[Path], target_type: str, base_uri: str, output_dir: Path
 ):
@@ -135,20 +138,52 @@ def extract_entities_from_episodes(
     return all_entities
 
 
+# -------- Path Configuration --------
+def get_paths(category: str):
+    base_dir = Path("data") / category
+
+    return {
+        "episode_dir": base_dir / "episodes",
+        "character_dir_raw": base_dir / "raw" / "characters",
+        "place_dir_raw": base_dir / "raw" / "places",
+        "timepoint_dir_raw": base_dir / "raw" / "timepoints",
+        "event_dir_raw": base_dir / "raw" / "events",
+    }
+
+
+# -------- CLI Entry Point --------
 if __name__ == "__main__":
-    episodes = sorted(Path(EPISODE_DIR).glob("*.txt"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--category",
+        nargs="+",
+        default=["main", "fanfic"],
+        help="Target categories (e.g., main fanfic). Defaults to both.",
+    )
+    args = parser.parse_args()
 
-    extract_entities_from_episodes(
-        episodes, "Character", CHARACTER_BASE_URI, Path(CHARACTER_DIR_RAW)
-    )
-    extract_entities_from_episodes(
-        episodes, "Place", PLACE_BASE_URI, Path(PLACE_DIR_RAW)
-    )
-    extract_entities_from_episodes(
-        episodes, "TimePoint", TIMEPOINT_BASE_URI, Path(TIMEPOINT_DIR_RAW)
-    )
-    extract_entities_from_episodes(
-        episodes, "Event", EVENT_BASE_URI, Path(EVENT_DIR_RAW)
-    )
+    for category in args.category:
+        print(f"\n📂 Processing category: {category}")
+        paths = get_paths(category)
+        episodes = sorted(paths["episode_dir"].glob("*.txt"))
 
-    print("✅ Extraction complete.")
+        if not episodes:
+            print(f"⚠️ No episodes found in: {paths['episode_dir']}")
+            continue
+
+        extract_entities_from_episodes(
+            episodes, "Character", CHARACTER_BASE_URI, paths["character_dir_raw"]
+        )
+        extract_entities_from_episodes(
+            episodes, "Place", PLACE_BASE_URI, paths["place_dir_raw"]
+        )
+        extract_entities_from_episodes(
+            episodes, "TimePoint", TIMEPOINT_BASE_URI, paths["timepoint_dir_raw"]
+        )
+        extract_entities_from_episodes(
+            episodes, "Event", EVENT_BASE_URI, paths["event_dir_raw"]
+        )
+
+        print(f"✅ Done with category: {category}")
+
+    print("\n🎉 All extraction complete.")

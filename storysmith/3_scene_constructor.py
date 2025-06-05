@@ -1,9 +1,9 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List
 
-from config import CONTEXT_URL, OPENAI_API_KEY
+from config import OPENAI_API_KEY
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
@@ -11,123 +11,127 @@ from langchain.prompts import (
 )
 from langchain_openai import ChatOpenAI
 
-# === CONFIG ===
-INTEGRATED_DIRS = {
-    "Character": Path("data/integrated/characters"),
-    "Place": Path("data/integrated/places"),
-    "TimePoint": Path("data/integrated/timepoints"),
-}
-EVENT_DIR = Path("data/raw/events")
-KG_OUTPUT_DIR = Path("data/kg/events")
-EVENT_BASE_URI = "https://story-smith.github.io/storysmith/events/"
+CHARACTER_DIR = Path("data/integrated/characters")
+EPISODE_DIR = Path("episodes")
+OUTPUT_DIR = Path("data/kg/character_relations")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# === SETUP ===
-model = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=OPENAI_API_KEY)
+model = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0.3,
+    openai_api_key=OPENAI_API_KEY,
+)
 
 
-# === 1. Build label → URI map ===
-def build_label_uri_map() -> Dict[str, str]:
-    label_uri = {}
-    for path in INTEGRATED_DIRS.values():
-        for file in path.glob("*.jsonld"):
-            with open(file, encoding="utf-8") as f:
-                data = json.load(f)
-                label = data.get("_features", {}).get("label", "").lower().strip()
-                if label:
-                    label_uri[label] = data["@id"]
-    return label_uri
+def load_character_label_uri() -> Dict[str, str]:
+    result = {}
+    for file in CHARACTER_DIR.glob("*.jsonld"):
+        try:
+            data = json.loads(file.read_text(encoding="utf-8"))
+            label = data.get("_features", {}).get("label", "").strip().lower()
+            uri = data.get("@id")
+            if label and uri:
+                result[label] = uri
+        except Exception as e:
+            print(f"❌ Failed to parse {file.name}: {e}")
+    return result
 
 
-# === 2. Extract triple elements from summary (GPT) ===
-def extract_triple_elements(summary: str) -> Optional[Dict[str, str]]:
-    system_prompt = """
-You are an assistant that extracts knowledge triples from short event summaries.
+def build_gpt_prompt(char_labels: List[str], episode_text: str) -> str:
+    return f"""
+You are a helpful assistant that extracts interactions between characters from a story.
 
-Extract:
-- actor (the subject/agent who did something)
-- target (optional: who or what it was done to)
-- location (optional: where it happened)
-- time (optional: when it happened)
+Extract triples in the form of:
+- subject (a character from the provided list)
+- predicate (an open natural-language verb or phrase)
+- object (a character from the same list)
 
-Return JSON like:
-{{
-  "actor": "Akira",
-  "target": "Kaiju",
-  "location": "Tokyo Tower",
-  "time": "August 6, 1945"
-}}
+Rules:
+- Only use characters from the list below as subject and object.
+- Output a list of JSON triples.
+- Predicate can be any descriptive phrase (e.g. "helps", "confesses love to", "fights").
+
+Characters:
+{", ".join(char_labels)}
+
+Story:
+{episode_text}
 """.strip()
 
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            SystemMessagePromptTemplate.from_template(system_prompt),
-            HumanMessagePromptTemplate.from_template("{input}"),
-        ]
-    )
 
-    chain = prompt | model
-    try:
-        response = chain.invoke({"input": summary}).content
-        return json.loads(response)
-    except json.JSONDecodeError:
-        match = re.search(r"{.*}", response, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
-    print("⚠️ Failed to parse GPT output:", response)
-    return None
+def clean_json_block(raw: str) -> str:
+    # Remove triple backticks or "```json"
+    return re.sub(r"```(?:json)?", "", raw).strip()
 
 
-# === 3. Build and save event triples ===
-def create_event_triples(label_uri_map: Dict[str, str]):
-    KG_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+def extract_character_triples(character_uri_map: Dict[str, str]):
+    character_labels = list(character_uri_map.keys())
 
-    for file in sorted(EVENT_DIR.glob("*.jsonld")):
-        with open(file, encoding="utf-8") as f:
-            data = json.load(f)
-
-        label = data.get("label", "")
-        summary = data.get("_features", {}).get("summary", "")
-        eid = data.get("@id")
-
-        # ない場合は自動生成
-        if not eid:
-            slug = re.sub(r"[^\w]+", "_", label.strip().lower())
-            eid = f"{EVENT_BASE_URI}{slug}"
-
-        print(f"🧠 Processing event: {label}")
-
-        elements = extract_triple_elements(summary)
-        if not elements:
-            print("❌ Skipping due to parse failure.")
+    for file in EPISODE_DIR.glob("*.txt"):
+        print(f"\n📝 Reading episode file: {file.name}")
+        try:
+            episode_text = file.read_text(encoding="utf-8")
+            print("📖 Episode preview:\n", episode_text[:300], "...\n")
+        except Exception as e:
+            print(f"❌ Failed to read {file.name}: {e}")
             continue
 
-        def map_uri(key: str) -> Optional[str]:
-            value = elements.get(key)
-            if value:
-                return label_uri_map.get(value.lower().strip())
-            return None
+        # Prompt GPT
+        prompt_text = build_gpt_prompt(character_labels, episode_text)
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                SystemMessagePromptTemplate.from_template(
+                    "You extract character-to-character interaction triples."
+                ),
+                HumanMessagePromptTemplate.from_template("{prompt}"),
+            ]
+        )
+        chain = prompt | model
 
-        triple = {
-            "@id": eid,
-            "@type": "Event",
-            "@context": CONTEXT_URL,
-            "hasActor": map_uri("actor"),
-            "hasTarget": map_uri("target") or None,
-            "hasLocation": map_uri("location"),
-            "hasTime": map_uri("time"),
-        }
+        try:
+            print("🤖 Sending prompt to GPT...")
+            response = chain.invoke({"prompt": prompt_text})
+            raw_content = response.content
+            print("📦 GPT raw response:\n", raw_content)
 
-        outpath = KG_OUTPUT_DIR / file.name
-        with open(outpath, "w", encoding="utf-8") as f:
-            json.dump(triple, f, ensure_ascii=False, indent=2)
-        print(f"✅ Saved triple: {outpath.name}")
+            cleaned = clean_json_block(raw_content)
+            triples = json.loads(cleaned)
+        except Exception as e:
+            print(f"⚠️ GPT parse error for {file.name}: {e}")
+            continue
+
+        # URI 変換
+        converted = []
+        for t in triples:
+            subj_label = t.get("subject", "").lower().strip()
+            obj_label = t.get("object", "").lower().strip()
+            predicate = t.get("predicate", "").strip()
+
+            if (
+                subj_label in character_uri_map
+                and obj_label in character_uri_map
+                and predicate
+            ):
+                converted.append(
+                    {
+                        "subject": character_uri_map[subj_label],
+                        "predicate": predicate,
+                        "object": character_uri_map[obj_label],
+                    }
+                )
+            else:
+                print(f"⚠️ Skipping unmatched triple: {t}")
+
+        if converted:
+            outpath = OUTPUT_DIR / (file.stem + ".json")
+            with open(outpath, "w", encoding="utf-8") as f:
+                json.dump(converted, f, ensure_ascii=False, indent=2)
+            print(f"✅ Saved: {outpath.name}")
+        else:
+            print(f"❌ No valid triples extracted from {file.name}")
 
 
-# === MAIN ===
 if __name__ == "__main__":
-    label_uri_map = build_label_uri_map()
-    create_event_triples(label_uri_map)
-    print("🏁 All event triples generated.")
+    character_uri_map = load_character_label_uri()
+    extract_character_triples(character_uri_map)
+    print("\n🏁 All episodes processed.")
