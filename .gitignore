@@ -17,3 +17,5 @@ memo/
 
 data/
 deduplication.log
+output/
+temp_episodes/

@@ -1,4 +1,3 @@
-import argparse
 import json
 import os
 import re
@@ -6,6 +5,7 @@ import uuid
 from pathlib import Path
 from typing import List
 
+import pandas as pd
 from dotenv import load_dotenv
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -19,11 +19,10 @@ from langchain_openai import ChatOpenAI
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Base URIs
+# Base URIs and context
 CONTEXT_URL = "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
 CHARACTER_BASE_URI = "https://story-smith.github.io/storysmith/characters/"
 PLACE_BASE_URI = "https://story-smith.github.io/storysmith/places/"
-SCENE_BASE_URI = "https://story-smith.github.io/storysmith/scenes/"
 TIMEPOINT_BASE_URI = "https://story-smith.github.io/storysmith/timepoints/"
 EVENT_BASE_URI = "https://story-smith.github.io/storysmith/events/"
 
@@ -128,8 +127,7 @@ def extract_entities_from_episodes(
 
                 outpath = output_dir / f"{slug}.jsonld"
                 with open(outpath, "w", encoding="utf-8", errors="replace") as f:
-                    safe_ent = json.loads(json.dumps(ent, ensure_ascii=False))
-                    json.dump(safe_ent, f, ensure_ascii=False, indent=2)
+                    json.dump(ent, f, ensure_ascii=False, indent=2)
                 print(f"📄 Saved: {outpath.name}")
                 all_entities.append(ent)
         except Exception as e:
@@ -138,52 +136,54 @@ def extract_entities_from_episodes(
     return all_entities
 
 
-# -------- Path Configuration --------
-def get_paths(category: str):
-    base_dir = Path("data") / category
+# -------- CSV Loader (Single File) --------
+def load_single_csv_as_texts() -> List[Path]:
+    input_dir = Path("data/data-by-train-split/section-stories/all")
+    csv_files = sorted(input_dir.glob("*.csv"))[:1]  # ← 上位1個のみ
 
-    return {
-        "episode_dir": base_dir / "episodes",
-        "character_dir_raw": base_dir / "raw" / "characters",
-        "place_dir_raw": base_dir / "raw" / "places",
-        "timepoint_dir_raw": base_dir / "raw" / "timepoints",
-        "event_dir_raw": base_dir / "raw" / "events",
-    }
+    if not csv_files:
+        print("⚠️ No CSV files found.")
+        return []
+
+    tmp_txt_dir = Path("temp_episodes")
+    tmp_txt_dir.mkdir(parents=True, exist_ok=True)
+
+    episode_paths = []
+    for csv_path in csv_files:
+        df = pd.read_csv(csv_path)
+        for i, row in df.iterrows():
+            text = row.get("text", "").strip()
+            if not text:
+                continue
+            tmp_path = tmp_txt_dir / f"{csv_path.stem}_{i}.txt"
+            tmp_path.write_text(text, encoding="utf-8")
+            episode_paths.append(tmp_path)
+
+    print(f"📦 Loaded {len(episode_paths)} episodes from: {csv_files[0].name}")
+    return episode_paths
 
 
 # -------- CLI Entry Point --------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--category",
-        nargs="+",
-        default=["main", "fanfic"],
-        help="Target categories (e.g., main fanfic). Defaults to both.",
+    episodes = load_single_csv_as_texts()
+
+    if not episodes:
+        print("⚠️ No episodes to process.")
+        exit()
+
+    output_base = Path("output/raw")  # ← 出力先は固定
+
+    extract_entities_from_episodes(
+        episodes, "Character", CHARACTER_BASE_URI, output_base / "characters"
     )
-    args = parser.parse_args()
-
-    for category in args.category:
-        print(f"\n📂 Processing category: {category}")
-        paths = get_paths(category)
-        episodes = sorted(paths["episode_dir"].glob("*.txt"))
-
-        if not episodes:
-            print(f"⚠️ No episodes found in: {paths['episode_dir']}")
-            continue
-
-        extract_entities_from_episodes(
-            episodes, "Character", CHARACTER_BASE_URI, paths["character_dir_raw"]
-        )
-        extract_entities_from_episodes(
-            episodes, "Place", PLACE_BASE_URI, paths["place_dir_raw"]
-        )
-        extract_entities_from_episodes(
-            episodes, "TimePoint", TIMEPOINT_BASE_URI, paths["timepoint_dir_raw"]
-        )
-        extract_entities_from_episodes(
-            episodes, "Event", EVENT_BASE_URI, paths["event_dir_raw"]
-        )
-
-        print(f"✅ Done with category: {category}")
+    extract_entities_from_episodes(
+        episodes, "Place", PLACE_BASE_URI, output_base / "places"
+    )
+    extract_entities_from_episodes(
+        episodes, "TimePoint", TIMEPOINT_BASE_URI, output_base / "timepoints"
+    )
+    extract_entities_from_episodes(
+        episodes, "Event", EVENT_BASE_URI, output_base / "events"
+    )
 
     print("\n🎉 All extraction complete.")
