@@ -84,7 +84,7 @@ def summarize_features(label: str, raw_text: str, target_type: str) -> str:
         ]
     )
 
-    model = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=OPENAI_API_KEY)
+    model = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, api_key=OPENAI_API_KEY)
     return (
         (prompt | model).invoke({"label": label, "raw_text": raw_text}).content.strip()
     )
