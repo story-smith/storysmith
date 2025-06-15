@@ -145,7 +145,8 @@ def load_single_csv_as_texts() -> List[Path]:
         print("⚠️ No CSV files found.")
         return []
 
-    tmp_txt_dir = Path("temp_episodes")
+    # ✅ 修正済み: フォルダ構成をtemp/episodesに変更
+    tmp_txt_dir = Path("temp/episodes")
     tmp_txt_dir.mkdir(parents=True, exist_ok=True)
 
     episode_paths = []
