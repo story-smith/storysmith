@@ -1,9 +1,10 @@
 import json
+import os
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
-from config import OPENAI_API_KEY
+from dotenv import load_dotenv
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
@@ -11,127 +12,121 @@ from langchain.prompts import (
 )
 from langchain_openai import ChatOpenAI
 
-CHARACTER_DIR = Path("data/integrated/characters")
-EPISODE_DIR = Path("episodes")
-OUTPUT_DIR = Path("data/kg/character_relations")
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 model = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.3,
-    openai_api_key=OPENAI_API_KEY,
+    api_key=OPENAI_API_KEY,  # ← ここが重要！
 )
 
+BASE_DIR = Path("output/raw/a-fish-story-story")
+OUTPUT_DIR = Path("output/triples")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-def load_character_label_uri() -> Dict[str, str]:
-    result = {}
-    for file in CHARACTER_DIR.glob("*.jsonld"):
-        try:
+ENTITY_TYPES = ["characters", "places", "events"]
+
+
+def load_entities(section: str) -> Dict[str, Dict[str, str]]:
+    result = {"characters": {}, "places": {}, "events": []}
+    for etype in ENTITY_TYPES:
+        path = BASE_DIR / etype / section
+        if not path.exists():
+            continue
+        for file in path.glob("*.jsonld"):
             data = json.loads(file.read_text(encoding="utf-8"))
-            label = data.get("_features", {}).get("label", "").strip().lower()
-            uri = data.get("@id")
-            if label and uri:
-                result[label] = uri
-        except Exception as e:
-            print(f"❌ Failed to parse {file.name}: {e}")
+            if etype == "events":
+                summary = data.get("_features", {}).get("summary", "").strip()
+                if summary:
+                    result["events"].append(summary)
+            else:
+                label = data.get("_features", {}).get("label", "").strip().lower()
+                uri = data.get("@id")
+                if label and uri:
+                    result[etype][label] = uri
     return result
 
 
-def build_gpt_prompt(char_labels: List[str], episode_text: str) -> str:
+def build_event_prompt(entities: Dict[str, str], summary: str) -> str:
     return f"""
-You are a helpful assistant that extracts interactions between characters from a story.
+You are an assistant that generates RDF-style interaction triples from event summaries.
 
-Extract triples in the form of:
-- subject (a character from the provided list)
-- predicate (an open natural-language verb or phrase)
-- object (a character from the same list)
+Generate a JSON list of triples with:
+- subject: entity label from the list below
+- predicate: inferred from the event summary
+- object: entity label from the list below
+
+Available entities:
+{", ".join(entities.keys())}
+
+Event summary:
+"{summary}"
 
 Rules:
-- Only use characters from the list below as subject and object.
-- Output a list of JSON triples.
-- Predicate can be any descriptive phrase (e.g. "helps", "confesses love to", "fights").
-
-Characters:
-{", ".join(char_labels)}
-
-Story:
-{episode_text}
+- Only use the above labels for subject/object.
+- Predicate should be natural language, e.g., "meets", "runs away from", "protects".
 """.strip()
 
 
 def clean_json_block(raw: str) -> str:
-    # Remove triple backticks or "```json"
     return re.sub(r"```(?:json)?", "", raw).strip()
 
 
-def extract_character_triples(character_uri_map: Dict[str, str]):
-    character_labels = list(character_uri_map.keys())
+def process_section(section_name: str):
+    print(f"\n📂 Processing {section_name}")
+    entity_data = load_entities(section_name)
 
-    for file in EPISODE_DIR.glob("*.txt"):
-        print(f"\n📝 Reading episode file: {file.name}")
-        try:
-            episode_text = file.read_text(encoding="utf-8")
-            print("📖 Episode preview:\n", episode_text[:300], "...\n")
-        except Exception as e:
-            print(f"❌ Failed to read {file.name}: {e}")
-            continue
+    # Merge characters and places
+    label_to_uri = {**entity_data["characters"], **entity_data["places"]}
+    if not label_to_uri or not entity_data["events"]:
+        print("⚠️ Skipping due to missing data.")
+        return
 
-        # Prompt GPT
-        prompt_text = build_gpt_prompt(character_labels, episode_text)
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessagePromptTemplate.from_template(
-                    "You extract character-to-character interaction triples."
-                ),
-                HumanMessagePromptTemplate.from_template("{prompt}"),
-            ]
+    triples = []
+    for summary in entity_data["events"]:
+        prompt = build_event_prompt(label_to_uri, summary)
+        chat = (
+            ChatPromptTemplate.from_messages(
+                [
+                    SystemMessagePromptTemplate.from_template(
+                        "You generate RDF-like triples from event summaries."
+                    ),
+                    HumanMessagePromptTemplate.from_template("{prompt}"),
+                ]
+            )
+            | model
         )
-        chain = prompt | model
-
         try:
-            print("🤖 Sending prompt to GPT...")
-            response = chain.invoke({"prompt": prompt_text})
-            raw_content = response.content
-            print("📦 GPT raw response:\n", raw_content)
-
-            cleaned = clean_json_block(raw_content)
-            triples = json.loads(cleaned)
+            response = chat.invoke({"prompt": prompt})
+            cleaned = clean_json_block(response.content)
+            generated = json.loads(cleaned)
         except Exception as e:
-            print(f"⚠️ GPT parse error for {file.name}: {e}")
+            print(f"⚠️ Failed to parse for summary: {summary[:30]}...: {e}")
             continue
 
-        # URI 変換
-        converted = []
-        for t in triples:
-            subj_label = t.get("subject", "").lower().strip()
-            obj_label = t.get("object", "").lower().strip()
-            predicate = t.get("predicate", "").strip()
-
-            if (
-                subj_label in character_uri_map
-                and obj_label in character_uri_map
-                and predicate
-            ):
-                converted.append(
+        for t in generated:
+            s = t.get("subject", "").lower().strip()
+            o = t.get("object", "").lower().strip()
+            p = t.get("predicate", "").strip()
+            if s in label_to_uri and o in label_to_uri and p:
+                triples.append(
                     {
-                        "subject": character_uri_map[subj_label],
-                        "predicate": predicate,
-                        "object": character_uri_map[obj_label],
+                        "subject": label_to_uri[s],
+                        "predicate": p,
+                        "object": label_to_uri[o],
                     }
                 )
-            else:
-                print(f"⚠️ Skipping unmatched triple: {t}")
 
-        if converted:
-            outpath = OUTPUT_DIR / (file.stem + ".json")
-            with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(converted, f, ensure_ascii=False, indent=2)
-            print(f"✅ Saved: {outpath.name}")
-        else:
-            print(f"❌ No valid triples extracted from {file.name}")
+    if triples:
+        outpath = OUTPUT_DIR / f"{section_name}.json"
+        with open(outpath, "w", encoding="utf-8") as f:
+            json.dump(triples, f, ensure_ascii=False, indent=2)
+        print(f"✅ Saved: {outpath}")
+    else:
+        print(f"❌ No valid triples for {section_name}")
 
 
 if __name__ == "__main__":
-    character_uri_map = load_character_label_uri()
-    extract_character_triples(character_uri_map)
-    print("\n🏁 All episodes processed.")
+    for sec in ["2", "3"]:
+        process_section(f"section_{sec}")

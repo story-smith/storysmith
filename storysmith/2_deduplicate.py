@@ -1,10 +1,16 @@
 import json
+import os
 from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
+
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # === 設定 ===
 ENTITY_TYPES = {
