@@ -18,7 +18,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 model = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.3,
-    api_key=OPENAI_API_KEY,  # ← ここが重要！
+    api_key=OPENAI_API_KEY,
 )
 
 BASE_DIR = Path("output/raw/a-fish-story-story")
@@ -42,9 +42,8 @@ def load_entities(section: str) -> Dict[str, Dict[str, str]]:
                     result["events"].append(summary)
             else:
                 label = data.get("_features", {}).get("label", "").strip().lower()
-                uri = data.get("@id")
-                if label and uri:
-                    result[etype][label] = uri
+                if label:
+                    result[etype][label] = label  # use label instead of URI
     return result
 
 
@@ -77,15 +76,14 @@ def process_section(section_name: str):
     print(f"\n📂 Processing {section_name}")
     entity_data = load_entities(section_name)
 
-    # Merge characters and places
-    label_to_uri = {**entity_data["characters"], **entity_data["places"]}
-    if not label_to_uri or not entity_data["events"]:
+    label_to_label = {**entity_data["characters"], **entity_data["places"]}
+    if not label_to_label or not entity_data["events"]:
         print("⚠️ Skipping due to missing data.")
         return
 
     triples = []
     for summary in entity_data["events"]:
-        prompt = build_event_prompt(label_to_uri, summary)
+        prompt = build_event_prompt(label_to_label, summary)
         chat = (
             ChatPromptTemplate.from_messages(
                 [
@@ -109,12 +107,12 @@ def process_section(section_name: str):
             s = t.get("subject", "").lower().strip()
             o = t.get("object", "").lower().strip()
             p = t.get("predicate", "").strip()
-            if s in label_to_uri and o in label_to_uri and p:
+            if s in label_to_label and o in label_to_label and p:
                 triples.append(
                     {
-                        "subject": label_to_uri[s],
+                        "subject": s,
                         "predicate": p,
-                        "object": label_to_uri[o],
+                        "object": o,
                     }
                 )
 
@@ -128,5 +126,5 @@ def process_section(section_name: str):
 
 
 if __name__ == "__main__":
-    for sec in ["2", "3"]:
+    for sec in ["2", "3"]:  # extend list as needed
         process_section(f"section_{sec}")
