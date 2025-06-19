@@ -187,20 +187,21 @@ if __name__ == "__main__":
         exit()
 
     for section_id, episode_path in section_episodes.items():
-        section_dir = Path(f"section_{section_id}")
-        output_base = Path("output/raw") / csv_basename / section_dir
-
-        extract_entities_from_episodes(
-            [episode_path], "Character", CHARACTER_BASE_URI, output_base / "characters"
-        )
-        extract_entities_from_episodes(
-            [episode_path], "Place", PLACE_BASE_URI, output_base / "places"
-        )
-        extract_entities_from_episodes(
-            [episode_path], "TimePoint", TIMEPOINT_BASE_URI, output_base / "timepoints"
-        )
-        extract_entities_from_episodes(
-            [episode_path], "Event", EVENT_BASE_URI, output_base / "events"
-        )
+        for target_type, base_uri, subdir in [
+            ("Character", CHARACTER_BASE_URI, "characters"),
+            ("Place", PLACE_BASE_URI, "places"),
+            ("TimePoint", TIMEPOINT_BASE_URI, "timepoints"),
+            ("Event", EVENT_BASE_URI, "events"),
+        ]:
+            # 保存先: output/raw/a-fish-story-story/characters/section_2/
+            output_base = (
+                Path("output/raw") / csv_basename / subdir / f"section_{section_id}"
+            )
+            extract_entities_from_episodes(
+                [episode_path],
+                target_type,
+                base_uri,
+                output_base,
+            )
 
     print("\n🎉 All extraction complete.")
