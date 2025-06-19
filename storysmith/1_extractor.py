@@ -136,55 +136,63 @@ def extract_entities_from_episodes(
     return all_entities
 
 
-# -------- CSV Loader (Single File) --------
-def load_single_csv_as_texts() -> List[Path]:
+def load_single_csv_as_texts() -> tuple[dict[int, Path], str]:
     input_dir = Path("data/data-by-train-split/section-stories/all")
-    csv_files = sorted(input_dir.glob("*.csv"))[:1]  # ← 上位1個のみ
+    csv_files = sorted(input_dir.glob("*.csv"))[:1]
 
     if not csv_files:
         print("⚠️ No CSV files found.")
-        return []
+        return {}, ""
 
-    # ✅ 修正済み: フォルダ構成をtemp/episodesに変更
+    csv_path = csv_files[0]
+    basename = csv_path.stem  # e.g., "trainset"
+
     tmp_txt_dir = Path("temp/episodes")
     tmp_txt_dir.mkdir(parents=True, exist_ok=True)
 
-    episode_paths = []
-    for csv_path in csv_files:
-        df = pd.read_csv(csv_path)
-        for i, row in df.iterrows():
-            text = row.get("text", "").strip()
-            if not text:
-                continue
-            tmp_path = tmp_txt_dir / f"{csv_path.stem}_{i}.txt"
-            tmp_path.write_text(text, encoding="utf-8")
-            episode_paths.append(tmp_path)
+    episode_paths = {}
+    df = pd.read_csv(csv_path)
 
-    print(f"📦 Loaded {len(episode_paths)} episodes from: {csv_files[0].name}")
-    return episode_paths
+    if "section" not in df.columns or "text" not in df.columns:
+        print("⚠️ Missing required columns: 'section' and 'text'")
+        return {}, ""
+
+    for section_id in [1, 2]:
+        section_df = df[df["section"] == section_id]
+        if section_df.empty:
+            continue
+
+        merged_text = "\n".join(section_df["text"].dropna().astype(str).map(str.strip))
+        tmp_path = tmp_txt_dir / f"{basename}_section_{section_id}.txt"
+        tmp_path.write_text(merged_text, encoding="utf-8")
+        episode_paths[section_id] = tmp_path
+
+    print(f"📦 Loaded {len(episode_paths)} sections from: {csv_path.name}")
+    return episode_paths, basename
 
 
-# -------- CLI Entry Point --------
 if __name__ == "__main__":
-    episodes = load_single_csv_as_texts()
+    section_episodes, csv_basename = load_single_csv_as_texts()
 
-    if not episodes:
+    if not section_episodes:
         print("⚠️ No episodes to process.")
         exit()
 
-    output_base = Path("output/raw")  # ← 出力先は固定
+    for section_id, episode_path in section_episodes.items():
+        section_dir = Path(f"section_{section_id}")
+        output_base = Path("output/raw") / csv_basename / section_dir
 
-    extract_entities_from_episodes(
-        episodes, "Character", CHARACTER_BASE_URI, output_base / "characters"
-    )
-    extract_entities_from_episodes(
-        episodes, "Place", PLACE_BASE_URI, output_base / "places"
-    )
-    extract_entities_from_episodes(
-        episodes, "TimePoint", TIMEPOINT_BASE_URI, output_base / "timepoints"
-    )
-    extract_entities_from_episodes(
-        episodes, "Event", EVENT_BASE_URI, output_base / "events"
-    )
+        extract_entities_from_episodes(
+            [episode_path], "Character", CHARACTER_BASE_URI, output_base / "characters"
+        )
+        extract_entities_from_episodes(
+            [episode_path], "Place", PLACE_BASE_URI, output_base / "places"
+        )
+        extract_entities_from_episodes(
+            [episode_path], "TimePoint", TIMEPOINT_BASE_URI, output_base / "timepoints"
+        )
+        extract_entities_from_episodes(
+            [episode_path], "Event", EVENT_BASE_URI, output_base / "events"
+        )
 
     print("\n🎉 All extraction complete.")
