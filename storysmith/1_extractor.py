@@ -46,8 +46,16 @@ class OutputParser(BaseOutputParser):
 # -------- Chain Builders --------
 def build_chain(context_url: str, target_type: str):
     system_template = f"""
-    You are a JSON-LD generator. Extract only {target_type}s from this episode, following context {context_url}.
-    Output a JSON array. Only include @id, @type, and optional label.
+    You are a JSON-LD generator that extracts only {target_type} entities from natural language stories. 
+    Use the context {context_url} to guide your extraction.
+
+    IMPORTANT RULES:
+    - Only extract entities that are clearly {target_type}s.
+    - DO NOT include other entity types. For example, do not include characters when extracting places.
+    - Use common sense and role/context in the story to decide if something is a {target_type}.
+    - Output a JSON array of objects with @id, @type, and optional label.
+
+    Be conservative: if you are unsure about the type, do not include the entity.
     """.strip()
 
     prompt = ChatPromptTemplate.from_messages(
@@ -94,12 +102,12 @@ def summarize_features(label: str, raw_text: str, target_type: str) -> str:
 def extract_entities_from_episodes(
     episodes: List[Path], target_type: str, base_uri: str, output_dir: Path
 ):
-    chain = build_chain(CONTEXT_URL, target_type)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     all_entities = []
 
     for ep in episodes:
+        chain = build_chain(CONTEXT_URL, target_type)
         epname = ep.stem
         print(f"🔍 Extracting {target_type} from {ep.name}")
         content = ep.read_text(encoding="utf-8", errors="replace").strip()
@@ -137,16 +145,16 @@ def extract_entities_from_episodes(
 
 
 def load_single_csv_as_texts() -> tuple[dict[int, Path], str]:
-    input_dir = Path("data/data-by-train-split/section-stories/all")
-    csv_files = sorted(input_dir.glob("*.csv"))[:1]
+    # 明示的なCSVファイル指定
+    csv_path = Path(
+        "data/data-by-train-split/section-stories/all/a-fish-story-story.csv"
+    )
 
-    if not csv_files:
-        print("⚠️ No CSV files found.")
+    if not csv_path.exists():
+        print(f"⚠️ Specified CSV not found: {csv_path}")
         return {}, ""
 
-    csv_path = csv_files[0]
-    basename = csv_path.stem  # e.g., "trainset"
-
+    basename = csv_path.stem  # e.g., "a-fish-story-story"
     tmp_txt_dir = Path("temp/episodes")
     tmp_txt_dir.mkdir(parents=True, exist_ok=True)
 
@@ -157,7 +165,7 @@ def load_single_csv_as_texts() -> tuple[dict[int, Path], str]:
         print("⚠️ Missing required columns: 'section' and 'text'")
         return {}, ""
 
-    for section_id in [1, 2]:
+    for section_id in [2, 3]:
         section_df = df[df["section"] == section_id]
         if section_df.empty:
             continue
