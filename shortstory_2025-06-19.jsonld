@@ -1,0 +1,48 @@
+{
+  "@context": "https://schema.org",
+  "@type": "ShortStory",
+  "@id": "https://story-smith.github.io/storysmith/stories/ryn-and-the-amulet",
+  "identifier": {
+    "@type": "PropertyValue",
+    "propertyID": "uri",
+    "value": "https://story-smith.github.io/storysmith/stories/ryn-and-the-amulet"
+  },
+  "name": "Ryn and the Amulet",
+  "abstract": "Ryn, a boy in the forest of Myrwood, embarks on a quest after encountering a talking crow.",
+  "text": "In the forest of Myrwood, a boy named Ryn meets a talking crow who offers him a quest to find the lost amulet of dusk.",
+  "character": [
+    {
+      "@id": "#ryn",
+      "@type": [
+        "Person",
+        "FictionalCharacter"
+      ],
+      "name": "Ryn"
+    },
+    {
+      "@type": "FictionalCharacter",
+      "name": "Talking Crow"
+    }
+  ],
+  "mainEntity": {
+    "@id": "#ryn"
+  },
+  "mentions": [
+    {
+      "@type": "Thing",
+      "name": "Amulet of Dusk",
+      "sameAs": "http://dbpedia.org/resource/Amulet"
+    }
+  ],
+  "about": [
+    {
+      "@type": "Thing",
+      "name": "Quest"
+    }
+  ],
+  "contentLocation": {
+    "@type": "Place",
+    "name": "Myrwood"
+  },
+  "dateCreated": "2025-06-19"
+}

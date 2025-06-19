@@ -1,0 +1,28 @@
+{
+  "@context": "https://schema.org",
+  "@type": "ShortStory",
+  "name": "The Quest for the Amulet of Dusk",
+  "abstract": "In the forest of Myrwood, a boy named Ryn meets a talking crow who offers him a quest to find the lost amulet of dusk.",
+  "text": "In the forest of Myrwood, a boy named Ryn meets a talking crow who offers him a quest to find the lost amulet of dusk.",
+  "character": [
+    {
+      "@type": "Person",
+      "name": "Ryn"
+    },
+    {
+      "@type": "Thing",
+      "name": "Talking Crow"
+    }
+  ],
+  "contentLocation": {
+    "@type": "Place",
+    "name": "Myrwood"
+  },
+  "mentions": [
+    {
+      "@type": "Thing",
+      "name": "Amulet of Dusk"
+    }
+  ],
+  "about": "Quest"
+}
