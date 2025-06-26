@@ -163,7 +163,7 @@ def load_single_csv_as_texts() -> tuple[dict[int, Path], str]:
         print("⚠️ Missing required columns: 'section' and 'text'")
         return {}, ""
 
-    for section_id in [2, 3]:
+    for section_id in [2, 3, 4]:
         section_df = df[df["section"] == section_id]
         if section_df.empty:
             continue
