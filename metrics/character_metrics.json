@@ -1,0 +1,18 @@
+{
+  "latest_file": "a-fish-story-story_section_3.shortstory.jsonld",
+  "timestamp": "2025-06-27T02:39:08.498368",
+  "total_characters": 5,
+  "new_characters": [
+    "https://story-smith.github.io/storysmith/characters/biernuga",
+    "https://story-smith.github.io/storysmith/characters/guddhu",
+    "https://story-smith.github.io/storysmith/characters/kumbal"
+  ],
+  "continued_characters": [
+    "https://story-smith.github.io/storysmith/characters/fish_tribe",
+    "https://story-smith.github.io/storysmith/characters/thuggai"
+  ],
+  "metrics": {
+    "novelty": 0.6,
+    "continuity": 0.4
+  }
+}
