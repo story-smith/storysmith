@@ -115,7 +115,7 @@ def extract_characters_and_build_shortstory(
             characters.append(
                 {
                     "@id": f"{base_uri}{slug}",
-                    "@type": "Character",
+                    "@type": "Person",
                     "label": label,
                     "episode": episode_path.stem,
                     "_features": {
