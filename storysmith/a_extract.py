@@ -19,9 +19,9 @@ from langchain_openai import ChatOpenAI
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Base URIs and context
+# Constants
 CONTEXT_URL = "https://raw.githubusercontent.com/story-smith/storysmith/refs/heads/main/storysmith/context.jsonld"
-CHARACTER_BASE_URI = "https://story-smith.github.io/storysmith/characters/"
+ENTITY_BASE_URI = "https://story-smith.github.io/storysmith/entities/"
 
 
 # -------- Output Parser --------
@@ -36,7 +36,7 @@ class OutputParser(BaseOutputParser):
                     return json.loads(match.group(1))
                 except json.JSONDecodeError:
                     pass
-        print("\u26a0\ufe0f Failed to parse JSON from GPT output.")
+        print("⚠️ Failed to parse JSON from GPT output.")
         return []
 
 
@@ -48,12 +48,9 @@ def build_chain(context_url: str, target_type: str):
 
     IMPORTANT RULES:
     - Only extract entities that are clearly {target_type}s.
-    - DO NOT include other entity types. For example, do not include characters when extracting places.
+    - DO NOT include other entity types.
     - Use common sense and role/context in the story to decide if something is a {target_type}.
-    - Include group characters (e.g., tribes, families, or animal groups) if they act together or show signs of agency (e.g., speech, action, emotion).
-    - Output a JSON array of objects with @id, @type, and optional label.
-
-    Be conservative: if you are unsure about the type, do not include the entity.
+    - Output a JSON array of objects with @id, @type, and optional name.
     """.strip()
 
     prompt = ChatPromptTemplate.from_messages(
@@ -67,22 +64,21 @@ def build_chain(context_url: str, target_type: str):
     return prompt | model | OutputParser()
 
 
-def summarize_features(label: str, raw_text: str, target_type: str) -> str:
+# -------- Feature Summarizer --------
+def summarize_features(name: str, raw_text: str, target_type: str) -> str:
     system_prompt = f"""
     You are an assistant summarizing distinguishing features of a {target_type} entity.
-    Your output should be:
-    - Extremely concise (max 1 sentence, ~20 words)
-    - Optimized for use in similarity comparison using embeddings
-    - Focused on traits or actions that make the {target_type} unique
-
-    Avoid generic descriptions. Be precise.
+    Output must be:
+    - Very concise (≤ 1 sentence)
+    - Embedding-friendly (semantic similarity optimized)
+    - Focused on unique traits or actions
     """.strip()
 
     prompt = ChatPromptTemplate.from_messages(
         [
             SystemMessagePromptTemplate.from_template(system_prompt),
             HumanMessagePromptTemplate.from_template("""
-        Entity label: {label}
+        Entity name: {name}
 
         Context excerpt:
         {raw_text}
@@ -91,89 +87,116 @@ def summarize_features(label: str, raw_text: str, target_type: str) -> str:
     )
 
     model = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, api_key=OPENAI_API_KEY)
-    return (
-        (prompt | model).invoke({"label": label, "raw_text": raw_text}).content.strip()
-    )
+    return (prompt | model).invoke({"name": name, "raw_text": raw_text}).content.strip()
 
 
-# -------- Entity Extraction and ShortStory Assembly --------
-def extract_characters_and_build_shortstory(
-    episode_path: Path, base_uri: str, output_path: Path, story_title: str
-):
-    chain = build_chain(CONTEXT_URL, "Character")
-    content = episode_path.read_text(encoding="utf-8", errors="replace").strip()
-    raw_excerpt = content[:1000].encode("utf-8", "replace").decode("utf-8")
-
-    characters = []
+# -------- Entity Extractor --------
+def extract_entities(
+    content: str, excerpt: str, target_type: str, episode_id: str
+) -> List[dict]:
+    chain = build_chain(CONTEXT_URL, target_type)
     try:
-        extracted = chain.invoke({"input": content})
-        for ent in extracted:
-            label = ent.get("label", "")
-            slug = re.sub(r"[^\w]+", "_", label.strip().lower()) or uuid.uuid4().hex[:8]
-            features_summary = summarize_features(label, raw_excerpt, "Character")
-
-            characters.append(
-                {
-                    "@id": f"{base_uri}{slug}",
-                    "@type": "Person",
-                    "label": label,
-                    "episode": episode_path.stem,
-                    "_features": {
-                        "label": label,
-                        "episode": episode_path.stem,
-                        "summary": features_summary,
-                    },
-                }
-            )
+        raw_entities = chain.invoke({"input": content})
     except Exception as e:
-        print(f"❌ Error extracting characters from {episode_path.name}: {e}")
+        print(f"❌ Error extracting {target_type}s: {e}")
+        return []
+
+    schema_type = {
+        "Character": "Person",
+        "Place": "Place",
+        "Item": "Product",
+    }[target_type]
+
+    entities = []
+    for ent in raw_entities:
+        name = ent.get("name", "")
+        if not name:
+            continue
+        slug = re.sub(r"[^\w]+", "_", name.strip().lower()) or uuid.uuid4().hex[:8]
+        summary = summarize_features(name, excerpt, target_type)
+
+        entities.append(
+            {
+                "@id": f"{ENTITY_BASE_URI}{slug}",
+                "@type": schema_type,
+                "name": name,
+                "episode": episode_id,
+                "_features": {
+                    "name": name,
+                    "episode": episode_id,
+                    "summary": summary,
+                },
+            }
+        )
+    return entities
+
+
+# -------- ShortStory Builder --------
+def build_shortstory_with_entities(
+    episode_path: Path, output_path: Path, story_title: str
+):
+    content = episode_path.read_text(encoding="utf-8", errors="replace").strip()
+    excerpt = content[:1000].encode("utf-8", "replace").decode("utf-8")
+    episode_id = episode_path.stem
 
     story_obj = {
         "@context": "https://schema.org",
         "@type": "ShortStory",
         "name": story_title,
         "text": content,
-        "character": characters,
     }
+
+    # Extract characters
+    characters = extract_entities(content, excerpt, "Character", episode_id)
+    if characters:
+        story_obj["character"] = characters
+
+    # Extract place (first only, as contentLocation is singular)
+    places = extract_entities(content, excerpt, "Place", episode_id)
+    if places:
+        story_obj["contentLocation"] = places[0]
+
+    # Extract items (as mentions list)
+    items = extract_entities(content, excerpt, "Item", episode_id)
+    if items:
+        story_obj["mentions"] = items
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(story_obj, f, ensure_ascii=False, indent=2)
 
-    print(f"📘 ShortStory saved: {output_path.name}")
+    print(f"📘 JSON-LD saved: {output_path.name}")
 
 
-# -------- Episode Loader --------
+# -------- CSV Loader --------
 def load_single_csv_as_texts() -> tuple[dict[int, Path], str]:
     csv_path = Path(
         "data/data-by-train-split/section-stories/all/a-fish-story-story.csv"
     )
     if not csv_path.exists():
-        print(f"⚠️ Specified CSV not found: {csv_path}")
+        print(f"⚠️ Missing CSV: {csv_path}")
         return {}, ""
 
     basename = csv_path.stem
     tmp_txt_dir = Path("temp/episodes")
     tmp_txt_dir.mkdir(parents=True, exist_ok=True)
 
-    episode_paths = {}
     df = pd.read_csv(csv_path)
-
     if "section" not in df.columns or "text" not in df.columns:
-        print("⚠️ Missing required columns: 'section' and 'text'")
+        print("⚠️ Missing required columns in CSV.")
         return {}, ""
 
+    episode_paths = {}
     for section_id in [2, 3, 4]:
         section_df = df[df["section"] == section_id]
         if section_df.empty:
             continue
-
         merged_text = "\n".join(section_df["text"].dropna().astype(str).map(str.strip))
         tmp_path = tmp_txt_dir / f"{basename}_section_{section_id}.txt"
         tmp_path.write_text(merged_text, encoding="utf-8")
         episode_paths[section_id] = tmp_path
 
-    print(f"📦 Loaded {len(episode_paths)} sections from: {csv_path.name}")
+    print(f"📦 Loaded {len(episode_paths)} episodes from CSV")
     return episode_paths, basename
 
 
@@ -182,7 +205,7 @@ if __name__ == "__main__":
     section_episodes, csv_basename = load_single_csv_as_texts()
 
     if not section_episodes:
-        print("⚠️ No episodes to process.")
+        print("⚠️ No episodes found.")
         exit()
 
     for section_id, episode_path in section_episodes.items():
@@ -191,8 +214,6 @@ if __name__ == "__main__":
             / f"{csv_basename}_section_{section_id}.shortstory.jsonld"
         )
         story_title = csv_basename.replace("-", " ").title()
-        extract_characters_and_build_shortstory(
-            episode_path, CHARACTER_BASE_URI, output_path, story_title
-        )
+        build_shortstory_with_entities(episode_path, output_path, story_title)
 
-    print("\n✅ All ShortStory documents complete.")
+    print("\n✅ All done.")

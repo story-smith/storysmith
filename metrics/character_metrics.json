@@ -12,22 +12,102 @@
   },
   "latest_episode": {
     "file": "a-fish-story-story_section_4.shortstory.jsonld",
-    "timestamp": "2025-06-27T02:50:35.133926",
+    "timestamp": "2025-06-27T03:52:27.403083",
     "characters": [
-      "https://story-smith.github.io/storysmith/characters/guddhu",
-      "https://story-smith.github.io/storysmith/characters/the_people"
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/guddhu",
+        "@type": "Person",
+        "label": "Guddhi",
+        "episode": "a-fish-story-story_section_4",
+        "_features": {
+          "label": "Guddhi",
+          "episode": "a-fish-story-story_section_4",
+          "summary": "Guddhi commands respect and awe by magically sustaining fire underwater, creating warmth and safety for those around him."
+        }
+      },
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/the_people",
+        "@type": "Person",
+        "label": "The People",
+        "episode": "a-fish-story-story_section_4",
+        "_features": {
+          "label": "The People",
+          "episode": "a-fish-story-story_section_4",
+          "summary": "The People, led by Guddhi, demonstrate unity and resilience as they gather wood and adapt to unexpected challenges."
+        }
+      }
     ],
     "new_characters": [
-      "https://story-smith.github.io/storysmith/characters/the_people"
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/the_people",
+        "@type": "Person",
+        "label": "The People",
+        "episode": "a-fish-story-story_section_4",
+        "_features": {
+          "label": "The People",
+          "episode": "a-fish-story-story_section_4",
+          "summary": "The People, led by Guddhi, demonstrate unity and resilience as they gather wood and adapt to unexpected challenges."
+        }
+      }
     ],
     "continued_characters": [
-      "https://story-smith.github.io/storysmith/characters/guddhu"
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/guddhu",
+        "@type": "Person",
+        "label": "Guddhi",
+        "episode": "a-fish-story-story_section_4",
+        "_features": {
+          "label": "Guddhi",
+          "episode": "a-fish-story-story_section_4",
+          "summary": "Guddhi commands respect and awe by magically sustaining fire underwater, creating warmth and safety for those around him."
+        }
+      }
     ],
     "disappeared_characters": [
-      "https://story-smith.github.io/storysmith/characters/biernuga",
-      "https://story-smith.github.io/storysmith/characters/fish_tribe",
-      "https://story-smith.github.io/storysmith/characters/kumbal",
-      "https://story-smith.github.io/storysmith/characters/thuggai"
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/biernuga",
+        "@type": "Person",
+        "label": "Biernuga",
+        "episode": "a-fish-story-story_section_3",
+        "_features": {
+          "label": "Biernuga",
+          "episode": "a-fish-story-story_section_3",
+          "summary": "Biernuga, the bony fish, demonstrates determination despite repeated failures to ignite a fire among his peers."
+        }
+      },
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/fish_tribe",
+        "@type": "Person",
+        "label": "the tribe",
+        "episode": "a-fish-story-story_section_3",
+        "_features": {
+          "label": "the tribe",
+          "episode": "a-fish-story-story_section_3",
+          "summary": "Guddhu the cod, skilled in magic, uniquely ignites fires for his tribe, showcasing leadership and resourcefulness."
+        }
+      },
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/kumbal",
+        "@type": "Person",
+        "label": "Kumbal",
+        "episode": "a-fish-story-story_section_3",
+        "_features": {
+          "label": "Kumbal",
+          "episode": "a-fish-story-story_section_3",
+          "summary": "Kumbal, the bream, is notable for his unsuccessful attempts to contribute to the group's efforts in lighting a fire."
+        }
+      },
+      {
+        "@id": "https://story-smith.github.io/storysmith/characters/thuggai",
+        "@type": "Person",
+        "label": "Thuggai",
+        "episode": "a-fish-story-story_section_3",
+        "_features": {
+          "label": "Thuggai",
+          "episode": "a-fish-story-story_section_3",
+          "summary": "Thuggai demonstrates leadership by suggesting patience and waiting for the sun to dry the wood for a fire."
+        }
+      }
     ],
     "metrics": {
       "novelty": 0.5,
