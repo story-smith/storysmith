@@ -151,12 +151,12 @@ def build_shortstory_with_entities(
     if characters:
         story_obj["character"] = characters
 
-    # Extract place (first only, as contentLocation is singular)
+    # Extract places as spatial (plural list)
     places = extract_entities(content, excerpt, "Place", episode_id)
     if places:
-        story_obj["contentLocation"] = places[0]
+        story_obj["spatial"] = places
 
-    # Extract items (as mentions list)
+    # Extract items as mentions
     items = extract_entities(content, excerpt, "Item", episode_id)
     if items:
         story_obj["mentions"] = items
