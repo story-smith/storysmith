@@ -209,10 +209,11 @@ if __name__ == "__main__":
         exit()
 
     for section_id, episode_path in section_episodes.items():
-        output_path = (
-            Path("output/shortstories")
-            / f"{csv_basename}_section_{section_id}.shortstory.jsonld"
-        )
+        output_dir = Path("output/shortstories") / csv_basename
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        output_path = output_dir / f"{csv_basename}_section_{section_id}.jsonld"
+
         story_title = csv_basename.replace("-", " ").title()
         build_shortstory_with_entities(episode_path, output_path, story_title)
 

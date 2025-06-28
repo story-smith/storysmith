@@ -1,0 +1,425 @@
+{
+  "summary": {
+    "latest_file": "a-fish-story-story_section_4.shortstory.jsonld",
+    "timestamp": "2025-06-27T09:44:11.229952"
+  },
+  "slots": {
+    "character": {
+      "total_count": 4,
+      "all_ids": [
+        "https://story-smith.github.io/storysmith/entities/biernuga",
+        "https://story-smith.github.io/storysmith/entities/guddhu",
+        "https://story-smith.github.io/storysmith/entities/kumbal",
+        "https://story-smith.github.io/storysmith/entities/thuggai"
+      ],
+      "latest_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/guddhu",
+          "@type": "Person",
+          "name": "Guddhu",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "Guddhu",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Guddhu is revered for his ability to keep a fire burning eternally, even underwater, providing warmth and safety to those around him."
+          }
+        }
+      ],
+      "new_entities": [],
+      "continued_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/guddhu",
+          "@type": "Person",
+          "name": "Guddhu",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "Guddhu",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Guddhu is revered for his ability to keep a fire burning eternally, even underwater, providing warmth and safety to those around him."
+          }
+        }
+      ],
+      "disappeared_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/biernuga",
+          "@type": "Person",
+          "name": "Biernuga",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "Biernuga",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Biernuga, the bony fish, demonstrates determination by attempting to ignite a fire despite the wet conditions."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/kumbal",
+          "@type": "Person",
+          "name": "Kumbal",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "Kumbal",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Kumbal, the bream, is characterized by his unsuccessful attempts to help light a fire, showcasing his lack of skill in the situation."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/thuggai",
+          "@type": "Person",
+          "name": "Thuggai",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "Thuggai",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Thuggai demonstrates leadership by suggesting patience and waiting for the sun to dry the wet wood."
+          }
+        }
+      ],
+      "metrics": {
+        "novelty": 0.0,
+        "continuity": 1.0,
+        "disappearance_rate": 0.75
+      }
+    },
+    "spatial": {
+      "total_count": 6,
+      "all_ids": [
+        "https://story-smith.github.io/storysmith/entities/cliff",
+        "https://story-smith.github.io/storysmith/entities/deep_pool",
+        "https://story-smith.github.io/storysmith/entities/hills",
+        "https://story-smith.github.io/storysmith/entities/large_tree",
+        "https://story-smith.github.io/storysmith/entities/river",
+        "https://story-smith.github.io/storysmith/entities/steep_bank"
+      ],
+      "latest_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/cliff",
+          "@type": "Place",
+          "name": "cliff",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "cliff",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "A cliff is a steep, vertical rock face that can create dramatic landscapes and serve as a vantage point."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/deep_pool",
+          "@type": "Place",
+          "name": "pool",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "pool",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "The pool uniquely serves as an eternal source of warmth, harboring a fire that burns brightly beneath its cold surface."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/hills",
+          "@type": "Place",
+          "name": "hills",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "hills",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Hills are characterized by their ability to influence weather patterns, such as creating strong winds that can unexpectedly alter fire behavior."
+          }
+        }
+      ],
+      "new_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/cliff",
+          "@type": "Place",
+          "name": "cliff",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "cliff",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "A cliff is a steep, vertical rock face that can create dramatic landscapes and serve as a vantage point."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/hills",
+          "@type": "Place",
+          "name": "hills",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "hills",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Hills are characterized by their ability to influence weather patterns, such as creating strong winds that can unexpectedly alter fire behavior."
+          }
+        }
+      ],
+      "continued_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/deep_pool",
+          "@type": "Place",
+          "name": "pool",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "pool",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "The pool uniquely serves as an eternal source of warmth, harboring a fire that burns brightly beneath its cold surface."
+          }
+        }
+      ],
+      "disappeared_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/large_tree",
+          "@type": "Place",
+          "name": "large tree",
+          "episode": "a-fish-story-story_section_2",
+          "_features": {
+            "name": "large tree",
+            "episode": "a-fish-story-story_section_2",
+            "summary": "A large tree provides a cool, shaded refuge for weary travelers seeking comfort by a riverbank."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/river",
+          "@type": "Place",
+          "name": "river",
+          "episode": "a-fish-story-story_section_2",
+          "_features": {
+            "name": "river",
+            "episode": "a-fish-story-story_section_2",
+            "summary": "A river serves as a vital resource for cooling, cooking, and shelter, often influencing the activities and comfort of nearby inhabitants."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/steep_bank",
+          "@type": "Place",
+          "name": "steep bank",
+          "episode": "a-fish-story-story_section_2",
+          "_features": {
+            "name": "steep bank",
+            "episode": "a-fish-story-story_section_2",
+            "summary": "A steep bank is a high, sloped edge by a river, providing a precarious camping spot with a deep pool below."
+          }
+        }
+      ],
+      "metrics": {
+        "novelty": 0.6667,
+        "continuity": 0.3333,
+        "disappearance_rate": 0.75
+      }
+    },
+    "mentions": {
+      "total_count": 13,
+      "all_ids": [
+        "https://story-smith.github.io/storysmith/entities/ashes",
+        "https://story-smith.github.io/storysmith/entities/bark",
+        "https://story-smith.github.io/storysmith/entities/biernuga",
+        "https://story-smith.github.io/storysmith/entities/deep_pool_of_water",
+        "https://story-smith.github.io/storysmith/entities/fire",
+        "https://story-smith.github.io/storysmith/entities/fishes",
+        "https://story-smith.github.io/storysmith/entities/guddhu",
+        "https://story-smith.github.io/storysmith/entities/kumbal",
+        "https://story-smith.github.io/storysmith/entities/large_tree",
+        "https://story-smith.github.io/storysmith/entities/pool",
+        "https://story-smith.github.io/storysmith/entities/thuggai",
+        "https://story-smith.github.io/storysmith/entities/two_sticks",
+        "https://story-smith.github.io/storysmith/entities/wood"
+      ],
+      "latest_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/fire",
+          "@type": "Product",
+          "name": "fire",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "fire",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Fire is a persistent entity that can burn continuously, even underwater, defying typical extinguishing conditions."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/fishes",
+          "@type": "Product",
+          "name": "fishes",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "fishes",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Fishes uniquely gather around an eternal fire that burns underwater, unlike terrestrial flames."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/pool",
+          "@type": "Product",
+          "name": "pool",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "pool",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "The pool uniquely contains an eternal fire that burns brightly underwater, attracting fish and providing warmth despite its cold, dark surroundings."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/wood",
+          "@type": "Product",
+          "name": "wood",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "wood",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Wood serves as a persistent fuel source that can sustain fire even in unexpected conditions, such as underwater."
+          }
+        }
+      ],
+      "new_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/fishes",
+          "@type": "Product",
+          "name": "fishes",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "fishes",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Fishes uniquely gather around an eternal fire that burns underwater, unlike terrestrial flames."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/pool",
+          "@type": "Product",
+          "name": "pool",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "pool",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "The pool uniquely contains an eternal fire that burns brightly underwater, attracting fish and providing warmth despite its cold, dark surroundings."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/wood",
+          "@type": "Product",
+          "name": "wood",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "wood",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Wood serves as a persistent fuel source that can sustain fire even in unexpected conditions, such as underwater."
+          }
+        }
+      ],
+      "continued_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/fire",
+          "@type": "Product",
+          "name": "fire",
+          "episode": "a-fish-story-story_section_4",
+          "_features": {
+            "name": "fire",
+            "episode": "a-fish-story-story_section_4",
+            "summary": "Fire is a persistent entity that can burn continuously, even underwater, defying typical extinguishing conditions."
+          }
+        }
+      ],
+      "disappeared_entities": [
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/ashes",
+          "@type": "Product",
+          "name": "ashes",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "ashes",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Ashes serve as a base for rekindling fire, demonstrating their role in the magical process of igniting flames."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/bark",
+          "@type": "Product",
+          "name": "bark",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "bark",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Bark is a versatile material used for kindling fires, particularly in wet conditions, showcasing its ability to ignite and sustain flames."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/biernuga",
+          "@type": "Product",
+          "name": "Biernuga",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "Biernuga",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Biernuga is a bony fish characterized by his attempts to contribute to the tribe's efforts despite repeated failures."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/deep_pool_of_water",
+          "@type": "Product",
+          "name": "deep pool of water",
+          "episode": "a-fish-story-story_section_2",
+          "_features": {
+            "name": "deep pool of water",
+            "episode": "a-fish-story-story_section_2",
+            "summary": "A deep pool of water serves as a cool refuge for weary fish, positioned beneath a steep bank and shaded by a large tree."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/guddhu",
+          "@type": "Product",
+          "name": "Guddhu",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "Guddhu",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Guddhu is a magically skilled cod who can ignite a fire by strategically managing wind and materials."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/kumbal",
+          "@type": "Product",
+          "name": "Kumbal",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "Kumbal",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Kumbal, the bream, is characterized by his unsuccessful attempts to contribute to the group's efforts in igniting a fire."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/large_tree",
+          "@type": "Product",
+          "name": "large tree",
+          "episode": "a-fish-story-story_section_2",
+          "_features": {
+            "name": "large tree",
+            "episode": "a-fish-story-story_section_2",
+            "summary": "A large tree provides shelter and comfort, serving as a resting spot for weary travelers."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/thuggai",
+          "@type": "Product",
+          "name": "Thuggai",
+          "episode": "a-fish-story-story_section_3",
+          "_features": {
+            "name": "Thuggai",
+            "episode": "a-fish-story-story_section_3",
+            "summary": "Thuggai demonstrates leadership by suggesting patience and waiting for the sun to dry the wet wood for a fire."
+          }
+        },
+        {
+          "@id": "https://story-smith.github.io/storysmith/entities/two_sticks",
+          "@type": "Product",
+          "name": "two sticks",
+          "episode": "a-fish-story-story_section_2",
+          "_features": {
+            "name": "two sticks",
+            "episode": "a-fish-story-story_section_2",
+            "summary": "Two sticks are essential tools for creating and maintaining fire in survival situations."
+          }
+        }
+      ],
+      "metrics": {
+        "novelty": 0.75,
+        "continuity": 0.25,
+        "disappearance_rate": 0.9
+      }
+    }
+  }
+}

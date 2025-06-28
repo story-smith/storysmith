@@ -1,18 +1,27 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Dict
 
 # === ディレクトリ設定 ===
 INTEGRATED_SHORTSTORY_DIR = Path("output/shortstories_integrated")
 METRICS_DIR = Path("metrics")
 METRICS_DIR.mkdir(exist_ok=True)
 
+# === 対象スロット定義 ===
+ENTITY_SLOTS = {"character": "characters", "spatial": "places", "mentions": "items"}
 
-def extract_character_data(jsonld_path: Path) -> dict:
-    """与えられたJSON-LDファイルからキャラクターのIDとメタデータを辞書で抽出"""
+
+def extract_entities(jsonld_path: Path, slot: str) -> Dict[str, dict]:
+    """指定スロットのエンティティを辞書形式で抽出"""
     with open(jsonld_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return {char["@id"]: char for char in data.get("character", []) if "@id" in char}
+
+    entries = data.get(slot, [])
+    if isinstance(entries, dict):  # spatialが1件だけだった過去形式への対応
+        entries = [entries]
+
+    return {entry["@id"]: entry for entry in entries if "@id" in entry}
 
 
 def analyze_latest_episode(story_dir: Path, metrics_dir: Path):
@@ -24,60 +33,57 @@ def analyze_latest_episode(story_dir: Path, metrics_dir: Path):
     latest_file = files[-1]
     previous_files = files[:-1]
 
-    # 最新ファイルのキャラクター抽出
-    latest_data = extract_character_data(latest_file)
-    latest_ids = set(latest_data.keys())
-
-    # 以前のファイルすべてからキャラクター抽出（統合）
-    all_previous_data = {}
-    for path in previous_files:
-        all_previous_data.update(extract_character_data(path))
-    all_previous_ids = set(all_previous_data.keys())
-
-    # 全キャラクターID
-    all_story_ids = latest_ids | all_previous_ids
-
-    # 分類
-    new_ids = latest_ids - all_previous_ids
-    continued_ids = latest_ids & all_previous_ids
-    disappeared_ids = all_previous_ids - latest_ids
-
-    # メトリクス計算
-    novelty = len(new_ids) / len(latest_ids) if latest_ids else 0
-    continuity = len(continued_ids) / len(latest_ids) if latest_ids else 0
-    disappearance = (
-        len(disappeared_ids) / len(all_previous_ids) if all_previous_ids else 0
-    )
-
-    # 結果構造体の構築
-    result = {
-        "story_summary": {
-            "total_characters": len(all_story_ids),
-            "all_characters": sorted(all_story_ids),
-        },
-        "latest_episode": {
-            "file": latest_file.name,
+    overall_result = {
+        "summary": {
+            "latest_file": latest_file.name,
             "timestamp": datetime.now().isoformat(),
-            "characters": [latest_data[_id] for _id in sorted(latest_ids)],
-            "new_characters": [latest_data[_id] for _id in sorted(new_ids)],
-            "continued_characters": [latest_data[_id] for _id in sorted(continued_ids)],
-            "disappeared_characters": [
-                all_previous_data[_id] for _id in sorted(disappeared_ids)
+        },
+        "slots": {},
+    }
+
+    for slot, label in ENTITY_SLOTS.items():
+        # 最新ファイルから抽出
+        latest_data = extract_entities(latest_file, slot)
+        latest_ids = set(latest_data.keys())
+
+        # 過去すべてから統合
+        previous_data = {}
+        for file in previous_files:
+            previous_data.update(extract_entities(file, slot))
+        previous_ids = set(previous_data.keys())
+
+        # 分析
+        new_ids = latest_ids - previous_ids
+        continued_ids = latest_ids & previous_ids
+        disappeared_ids = previous_ids - latest_ids
+        all_ids = latest_ids | previous_ids
+
+        novelty = len(new_ids) / len(latest_ids) if latest_ids else 0
+        continuity = len(continued_ids) / len(latest_ids) if latest_ids else 0
+        disappearance = len(disappeared_ids) / len(previous_ids) if previous_ids else 0
+
+        overall_result["slots"][slot] = {
+            "total_count": len(all_ids),
+            "all_ids": sorted(all_ids),
+            "latest_entities": [latest_data[_id] for _id in sorted(latest_ids)],
+            "new_entities": [latest_data[_id] for _id in sorted(new_ids)],
+            "continued_entities": [latest_data[_id] for _id in sorted(continued_ids)],
+            "disappeared_entities": [
+                previous_data[_id] for _id in sorted(disappeared_ids)
             ],
             "metrics": {
                 "novelty": round(novelty, 4),
                 "continuity": round(continuity, 4),
                 "disappearance_rate": round(disappearance, 4),
             },
-        },
-    }
+        }
 
     # 保存
-    outpath = metrics_dir / "character_metrics.json"
+    outpath = metrics_dir / "entity_metrics.json"
     with open(outpath, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        json.dump(overall_result, f, ensure_ascii=False, indent=2)
 
-    print("✅ メトリクス保存完了 →", outpath.resolve())
+    print(f"✅ メトリクス保存完了 → {outpath.resolve()}")
 
 
 # エントリーポイント

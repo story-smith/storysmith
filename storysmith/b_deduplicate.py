@@ -8,29 +8,29 @@ from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
-# === 環境変数読み込み ===
+# === Load environment variables ===
 load_dotenv()
 
-# === ディレクトリ設定 ===
+# === Directory settings ===
 SHORTSTORY_DIR = Path("output/shortstories")
 INTEGRATED_BASE_DIR = Path("output/integrated")
 UPDATED_SHORTSTORY_DIR = Path("output/shortstories_integrated")
 
-# 類似度の閾値
+# Similarity threshold
 SIMILARITY_THRESHOLD = 0.90
 
-# 統合対象スロットとスキーマタイプ
+# Target slots and schema types
 TARGET_SLOTS = {
     "character": "Person",
     "spatial": "Place",
     "mentions": "Product",
 }
 
-# === SBERTモデル読み込み ===
+# === Load SBERT model ===
 model = SentenceTransformer("intfloat/multilingual-e5-large")
 
 
-# === Step 1: ShortStoryからエンティティ抽出 ===
+# === Step 1: Extract entities from ShortStories ===
 def load_entities_from_shortstories(
     slot: str, shortstory_dir: Path
 ) -> List[Tuple[dict, str, Path]]:
@@ -46,7 +46,7 @@ def load_entities_from_shortstories(
     return entities
 
 
-# === Step 2: 類似クラスタリング ===
+# === Step 2: Similarity clustering ===
 def deduplicate_entities(entities: List[Tuple[dict, str, Path]], threshold: float):
     labels = [label for _, label, _ in entities]
     embeddings = model.encode(
@@ -55,7 +55,7 @@ def deduplicate_entities(entities: List[Tuple[dict, str, Path]], threshold: floa
 
     clusters = []
     used = set()
-    for i in tqdm(range(len(entities)), desc="🔗 エンティティ統合"):
+    for i in tqdm(range(len(entities)), desc="🔗 Clustering entities"):
         if i in used:
             continue
         cluster = [entities[i]]
@@ -72,7 +72,7 @@ def deduplicate_entities(entities: List[Tuple[dict, str, Path]], threshold: floa
     return clusters
 
 
-# === Step 3: 統合クラスタ保存 ===
+# === Step 3: Save integrated clusters ===
 def save_cluster(cluster: List[Tuple[dict, str, Path]], outdir: Path):
     rep = cluster[0][0]
     rep_id = rep.get("@id")
@@ -83,10 +83,10 @@ def save_cluster(cluster: List[Tuple[dict, str, Path]], outdir: Path):
     outpath = outdir / f"{slug}.jsonld"
     with open(outpath, "w", encoding="utf-8") as f:
         json.dump(rep, f, ensure_ascii=False, indent=2)
-    print(f"✅ 統合保存: {outpath.name}（{len(cluster)} 件）")
+    print(f"✅ Saved integrated cluster: {outpath.name} ({len(cluster)} merged)")
 
 
-# === Step 4: sameAsマップ構築 ===
+# === Step 4: Build sameAs map ===
 def build_sameas_map(integrated_dir: Path) -> Dict[str, str]:
     id_map = {}
     for path in integrated_dir.glob("*.jsonld"):
@@ -98,7 +98,7 @@ def build_sameas_map(integrated_dir: Path) -> Dict[str, str]:
     return id_map
 
 
-# === Step 5: JSON内の @id をマップで更新 ===
+# === Step 5: Update @id in slots ===
 def update_ids_in_slot(story: dict, slot: str, sameas_map: dict) -> bool:
     updated = False
     for ent in story.get(slot, []):
@@ -108,7 +108,7 @@ def update_ids_in_slot(story: dict, slot: str, sameas_map: dict) -> bool:
     return updated
 
 
-# === Step 6: ShortStoryを更新して保存 ===
+# === Step 6: Update ShortStory and save ===
 def update_shortstory_ids(
     story_path: Path, id_maps: Dict[str, Dict[str, str]], outdir: Path
 ):
@@ -124,17 +124,17 @@ def update_shortstory_ids(
         outpath = outdir / story_path.name
         with open(outpath, "w", encoding="utf-8") as f:
             json.dump(story, f, ensure_ascii=False, indent=2)
-        print(f"🔄 ShortStory更新: {outpath.name}")
+        print(f"🔄 Updated ShortStory: {outpath.name}")
 
 
-# === メイン処理 ===
+# === Main process ===
 if __name__ == "__main__":
-    print("🚀 統合処理開始\n")
+    print("🚀 Starting the integration process...\n")
 
-    # スロットごとに処理
+    # Process each slot
     id_maps = {}
     for slot, type_name in TARGET_SLOTS.items():
-        print(f"\n📂 {slot} の処理中...")
+        print(f"\n📂 Processing {slot}...")
         ent_dir = INTEGRATED_BASE_DIR / slot
         entities = load_entities_from_shortstories(slot, SHORTSTORY_DIR)
         clusters = deduplicate_entities(entities, SIMILARITY_THRESHOLD)
@@ -142,9 +142,9 @@ if __name__ == "__main__":
             save_cluster(cluster, ent_dir)
         id_maps[slot] = build_sameas_map(ent_dir)
 
-    # ShortStoryの更新
-    print("\n🛠 ShortStory の @id を統合済みに差し替え中...")
+    # Update ShortStories
+    print("\n🛠 Updating @id references in ShortStories...")
     for story_path in SHORTSTORY_DIR.glob("*.jsonld"):
         update_shortstory_ids(story_path, id_maps, UPDATED_SHORTSTORY_DIR)
 
-    print("\n✅ 統合処理と ShortStory 更新が完了しました！")
+    print("\n✅ Integration and ShortStory updates completed successfully!")
